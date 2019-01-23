@@ -86,8 +86,14 @@ public /**final**/ class URL implements Serializable {
     // by default, port to registry
     private final int port;
 
+    /**
+     * 路径（服务名）
+     */
     private final String path;
 
+    /**
+     * 参数集合
+     */
     private final Map<String, String> parameters;
 
     // ==== cache ====
@@ -1230,6 +1236,15 @@ public /**final**/ class URL implements Serializable {
         return buildString(appendUser, appendParameter, false, false, parameters);
     }
 
+    /**
+     * 生成protocol://username:password@host:port/path?key=value&key=value这种类型的字符串
+     * @param appendUser
+     * @param appendParameter
+     * @param useIP
+     * @param useService
+     * @param parameters
+     * @return
+     */
     private String buildString(boolean appendUser, boolean appendParameter, boolean useIP, boolean useService, String... parameters) {
         StringBuilder buf = new StringBuilder();
         if (protocol != null && protocol.length() > 0) {

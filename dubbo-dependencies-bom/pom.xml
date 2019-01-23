@@ -70,7 +70,7 @@
         <url>https://github.com/apache/incubator-dubbo/issues</url>
     </issueManagement>
 
-    <properties>
+    <properties>  <!--一定义了 Dubbo 依赖的三方库的版本号-->
         <!-- Common libs -->
         <spring_version>4.3.16.RELEASE</spring_version>
         <javassist_version>3.20.0-GA</javassist_version>

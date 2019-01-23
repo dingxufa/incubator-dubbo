@@ -781,4 +781,9 @@ public final class StringUtils {
         }
         return buf.toString();
     }
+
+    public static void main(String[] args) {
+
+        System.out.println( camelToSplitName("setHeaderName","."));//set.header.name
+    }
 }
