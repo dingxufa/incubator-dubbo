@@ -168,14 +168,20 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     @SuppressWarnings("deprecation")
+    /**
+     * 校验 ApplicationConfig 配置。
+     * 实际上，该方法会初始化 ApplicationConfig 的配置属性。
+     */
     protected void checkApplication() {
         // for backward compatibility
+        //如果application为空，创建一个application对象
         if (application == null) {
             application = new ApplicationConfig();
         }
 
         application.refresh();
 
+        // 如果application的name是空，抛出异常
         if (!application.isValid()) {
             throw new IllegalStateException("No application config found or it's not a valid config! " +
                     "Please add <dubbo:application name=\"...\" /> to your spring config.");

@@ -41,6 +41,9 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport {
         Version.checkDuplicate(DubboNamespaceHandler.class);
     }
 
+    /**
+     * 定义了每个 <xsd:element /> 对应的 org.springframework.beans.factory.xml.BeanDefinitionParser 存放在hashmap中
+     */
     @Override
     public void init() {
         registerBeanDefinitionParser("application", new DubboBeanDefinitionParser(ApplicationConfig.class, true));
@@ -51,8 +54,13 @@ public class DubboNamespaceHandler extends NamespaceHandlerSupport {
         registerBeanDefinitionParser("provider", new DubboBeanDefinitionParser(ProviderConfig.class, true));
         registerBeanDefinitionParser("consumer", new DubboBeanDefinitionParser(ConsumerConfig.class, true));
         registerBeanDefinitionParser("protocol", new DubboBeanDefinitionParser(ProtocolConfig.class, true));
-        registerBeanDefinitionParser("service", new DubboBeanDefinitionParser(ServiceBean.class, true));
-        registerBeanDefinitionParser("reference", new DubboBeanDefinitionParser(ReferenceBean.class, false));
+
+
+        registerBeanDefinitionParser("service", new DubboBeanDefinitionParser(ServiceBean.class, true)); //service 标签使用的是 ServiceBean ，而不是 ServiceConfig
+        registerBeanDefinitionParser("reference", new DubboBeanDefinitionParser(ReferenceBean.class, false)); //reference 表示用的是 ReferenceBean
+        //无论是 ServiceConfig 还是 ReferenceBean ，在解析完具体配置后，需要调用它们对应的方法进行初始化
+
+
         registerBeanDefinitionParser("annotation", new AnnotationBeanDefinitionParser());
     }
 

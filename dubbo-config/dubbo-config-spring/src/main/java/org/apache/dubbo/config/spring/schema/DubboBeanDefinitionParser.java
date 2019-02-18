@@ -54,14 +54,22 @@ import java.util.regex.Pattern;
 
 /**
  * AbstractBeanDefinitionParser
- *
+ * Dubbo Bean 定义解析器。
  * @export
  */
 public class DubboBeanDefinitionParser implements BeanDefinitionParser {
 
     private static final Logger logger = LoggerFactory.getLogger(DubboBeanDefinitionParser.class);
     private static final Pattern GROUP_AND_VERION = Pattern.compile("^[\\-.0-9_a-zA-Z]+(\\:[\\-.0-9_a-zA-Z]+)?$");
+    /**
+     * Bean 对象的类
+     */
     private final Class<?> beanClass;
+    /**
+     *  是否需要 Bean 的 `id` 属性
+     *
+     *  是否需要在 Bean 对象的编号( id ) 不存在时，自动生成编号。无需被其他应用引用的配置对象，无需自动生成编号。例如有 <dubbo:reference /> 。
+     */
     private final boolean required;
 
     public DubboBeanDefinitionParser(Class<?> beanClass, boolean required) {
@@ -69,12 +77,21 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
         this.required = required;
     }
 
+    /**
+     * 解析 XML 元素
+     */
     @SuppressWarnings("unchecked")
     private static BeanDefinition parse(Element element, ParserContext parserContext, Class<?> beanClass, boolean required) {
         RootBeanDefinition beanDefinition = new RootBeanDefinition();
         beanDefinition.setBeanClass(beanClass);
+        //引用缺省是延迟初始化的，只有引用被注入到其它 Bean，或被 getBean() 获取，才会初始化。
+        // 如果需要饥饿加载，即没有人引用也立即生成动态代理，可以配置：<dubbo:reference ... init="true" />
         beanDefinition.setLazyInit(false);
+
         String id = element.getAttribute("id");
+        // 解析配置对象的 id 。若不存在，则进行生成。
+        //如果id为空并且要求id存在，产生id值     规则为 name > 特殊规则(interface属性/dubbo) > className
+        //如果registry中已经含有该id ,通过自增序列，解决重复。
         if ((id == null || id.length() == 0) && required) {
             String generatedBeanName = element.getAttribute("name");
             if (generatedBeanName == null || generatedBeanName.length() == 0) {
@@ -93,13 +110,22 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                 id = generatedBeanName + (counter++);
             }
         }
+
         if (id != null && id.length() > 0) {
+            //检查是否已存在bean id
             if (parserContext.getRegistry().containsBeanDefinition(id)) {
                 throw new IllegalStateException("Duplicate spring bean id " + id);
             }
+            // 添加到 Spring 的注册表
             parserContext.getRegistry().registerBeanDefinition(id, beanDefinition);
+            // 设置 Bean 的 `id` 属性值
             beanDefinition.getPropertyValues().addPropertyValue("id", id);
         }
+
+
+        // 处理 `<dubbo:protocol` /> 的特殊情况
+        // <dubbo:service interface="com.alibaba.dubbo.demo.DemoService" protocol="dubbo" ref="demoService"/>
+        // <dubbo:protocol id="dubbo" name="dubbo" port="20880"/>
         if (ProtocolConfig.class.equals(beanClass)) {
             for (String name : parserContext.getRegistry().getBeanDefinitionNames()) {
                 BeanDefinition definition = parserContext.getRegistry().getBeanDefinition(name);
@@ -111,27 +137,52 @@ public class DubboBeanDefinitionParser implements BeanDefinitionParser {
                     }
                 }
             }
-        } else if (ServiceBean.class.equals(beanClass)) {
+
+
+        } else if (ServiceBean.class.equals(beanClass)) {  // 处理 `<dubbo:service />` 的属性 `class`
+            // 处理 `class` 属性。例如  <dubbo:service id="sa" interface="com.alibaba.dubbo.demo.DemoService" class="com.alibaba.dubbo.demo.provider.DemoServiceImpl" >
+
             String className = element.getAttribute("class");
             if (className != null && className.length() > 0) {
+                // 创建 Service 的 RootBeanDefinition 对象。相当于内嵌了 <bean class="com.alibaba.dubbo.demo.provider.DemoServiceImpl" />
                 RootBeanDefinition classDefinition = new RootBeanDefinition();
                 classDefinition.setBeanClass(ReflectUtils.forName(className));
                 classDefinition.setLazyInit(false);
+                // 解析 Service Bean 对象的属性
                 parseProperties(element.getChildNodes(), classDefinition);
+                // 设置 `<dubbo:service ref="" />` 属性
                 beanDefinition.getPropertyValues().addPropertyValue("ref", new BeanDefinitionHolder(classDefinition, id + "Impl"));
             }
-        } else if (ProviderConfig.class.equals(beanClass)) {
+/*
+            处理 <dubbo:service class="" /> 场景下的处理，大多数情况下我们不这么使用，包括官方文档也没提供这种方式的说明。
+            当配置 class 属时，会自动创建 Service Bean 对象，而无需再配置 ref 属性，指向 Service Bean 对象。示例如下：
+            <bean id="demoDAO" class="com.alibaba.dubbo.demo.provider.DemoDAO" />
+
+            <dubbo:service id="sa" interface="com.alibaba.dubbo.demo.DemoService"  class="com.alibaba.dubbo.demo.provider.DemoServiceImpl">
+                <property name="demoDAO" ref="demoDAO" />
+            </dubbo:service>
+            通过这种方式，可以使用 <property /> 标签，设置 Service Bean 的属性。
+
+*/
+
+        } else if (ProviderConfig.class.equals(beanClass)) {// 解析 `<dubbo:consumer />` 的内嵌子元素 `<dubbo:reference />`
+            //解析内嵌的指向的子 XML 元素。
             parseNested(element, parserContext, ServiceBean.class, true, "service", "provider", id, beanDefinition);
-        } else if (ConsumerConfig.class.equals(beanClass)) {
+
+        } else if (ConsumerConfig.class.equals(beanClass)) {// 解析 `<dubbo:consumer />` 的内嵌子元素 `<dubbo:reference />`
+            //解析内嵌的指向的子 XML 元素。
             parseNested(element, parserContext, ReferenceBean.class, false, "reference", "consumer", id, beanDefinition);
         }
-        Set<String> props = new HashSet<String>();
+
+
+        //循环 Bean 对象的 setting 方法，将属性赋值到 Bean 对象
+        Set<String> props = new HashSet<String>(); //// 已解析的属性集合
         ManagedMap parameters = null;
         for (Method setter : beanClass.getMethods()) {
             String name = setter.getName();
             if (name.length() > 3 && name.startsWith("set")
                     && Modifier.isPublic(setter.getModifiers())
-                    && setter.getParameterTypes().length == 1) {
+                    && setter.getParameterTypes().length == 1) {  // setting && public && 唯一参数
                 Class<?> type = setter.getParameterTypes()[0];
                 String beanProperty = name.substring(3, 4).toLowerCase() + name.substring(4);
                 String property = StringUtils.camelToSplitName(beanProperty, "-");

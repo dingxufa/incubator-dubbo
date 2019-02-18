@@ -29,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * This is a singleton in order to ensure there is only one shutdown hook registered.
  * Because {@link ApplicationShutdownHooks} use {@link java.util.IdentityHashMap}
  * to store the shutdown hooks.
+ *
+ * 单例模式 shutdown hook
  */
 public class DubboShutdownHook extends Thread {
 
@@ -36,11 +38,11 @@ public class DubboShutdownHook extends Thread {
 
     private static final DubboShutdownHook dubboShutdownHook = new DubboShutdownHook("DubboShutdownHook");
     /**
-     * Has it already been registered or not?
+     * Has it already been registered or not?  是否已经注册过
      */
     private final AtomicBoolean registered = new AtomicBoolean(false);
     /**
-     * Has it already been destroyed or not?
+     * Has it already been destroyed or not?  是否已经销毁
      */
     private final AtomicBoolean destroyed= new AtomicBoolean(false);
 
@@ -64,6 +66,7 @@ public class DubboShutdownHook extends Thread {
      * Register the ShutdownHook
      */
     public void register() {
+        // 未注册（registered=false）&& CAS更新registered字段成功
         if (!registered.get() && registered.compareAndSet(false, true)) {
             Runtime.getRuntime().addShutdownHook(getDubboShutdownHook());
         }
@@ -73,6 +76,7 @@ public class DubboShutdownHook extends Thread {
      * Unregister the ShutdownHook
      */
     public void unregister() {
+        //已注册（registered=true）&& CAS更新registered字段成功
         if (registered.get() && registered.compareAndSet(true, false)) {
             Runtime.getRuntime().removeShutdownHook(getDubboShutdownHook());
         }
@@ -82,6 +86,7 @@ public class DubboShutdownHook extends Thread {
      * Destroy all the resources, including registries and protocols.
      */
     public void doDestroy() {
+        // 判断是否更新destroy字段成功
         if (!destroyed.compareAndSet(false, true)) {
             return;
         }
@@ -95,6 +100,7 @@ public class DubboShutdownHook extends Thread {
      * Destroy all the protocols.
      */
     private void destroyProtocols() {
+        //
         ExtensionLoader<Protocol> loader = ExtensionLoader.getExtensionLoader(Protocol.class);
         for (String protocolName : loader.getLoadedExtensions()) {
             try {

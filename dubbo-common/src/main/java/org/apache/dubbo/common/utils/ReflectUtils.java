@@ -640,6 +640,7 @@ public final class ReflectUtils {
         return sb.toString();
     }
 
+    // 获取name对应的class  * "boolean" => boolean.class   * "java.util.Map[][]" => java.util.Map[][].class
     public static Class<?> forName(String name) {
         try {
             return name2class(name);

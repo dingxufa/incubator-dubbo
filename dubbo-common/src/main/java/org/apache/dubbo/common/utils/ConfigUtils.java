@@ -140,6 +140,11 @@ public class ConfigUtils {
         return sb.toString();
     }
 
+    /**
+     * 从dubbo.properties.file=value 设置的value读取属性配置文件
+     * 若System.getProperty  System.getenv都未配置，则默认配置文件为dubbo.properties
+     * @return
+     */
     public static Properties getProperties() {
         if (PROPERTIES == null) {
             synchronized (ConfigUtils.class) {

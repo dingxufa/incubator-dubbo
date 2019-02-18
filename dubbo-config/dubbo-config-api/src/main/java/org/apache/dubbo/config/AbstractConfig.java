@@ -93,11 +93,20 @@ public abstract class AbstractConfig implements Serializable {
 
     /**
      * The legacy properties container
+     *   * 新老版本的 properties 的 key 映射
+     *
+     *   key：新版本的配置 映射
+     *   value：旧版本的配置 映射
+     *
+     *   来自 2012/3/8 下午 5：51 cb1f705 提交
+     *   DUBBO-251 增加API覆盖dubbo.properties的测试，以及旧版本配置项测试。
      */
     private static final Map<String, String> legacyProperties = new HashMap<String, String>();
 
     /**
      * The suffix container
+     *  配置类名的后缀
+     *  例如，ServiceConfig 后缀为 Config；ServiceBean 后缀为 Bean。
      */
     private static final String[] SUFFIXES = new String[]{"Config", "Bean"};
 
@@ -112,6 +121,7 @@ public abstract class AbstractConfig implements Serializable {
         legacyProperties.put("dubbo.service.url", "dubbo.service.address");
 
         // this is only for compatibility
+        // 注册钩子
         DubboShutdownHook.getDubboShutdownHook().register();
     }
 
@@ -121,6 +131,15 @@ public abstract class AbstractConfig implements Serializable {
     protected String id;
     protected String prefix;
 
+    /**
+     * 将键对应的值转换成目标的值。
+     *
+     * 因为，新老配置可能有一些差异，通过该方法进行转换。
+     *
+     * @param key 键
+     * @param value 值
+     * @return 转换后的值
+     */
     private static String convertLegacyValue(String key, String value) {
         if (value != null && value.length() > 0) {
             if ("dubbo.service.max.retry.providers".equals(key)) {
@@ -132,15 +151,21 @@ public abstract class AbstractConfig implements Serializable {
         return value;
     }
 
+    /**
+     *  获取类名对应的属性标签，例如，ServiceConfig 对应为 service 。
+     *  AxxBxxCxx---> return  axxBxxCxx
+     * @param cls
+     * @return
+     */
     private static String getTagName(Class<?> cls) {
         String tag = cls.getSimpleName();
-        for (String suffix : SUFFIXES) {
+        for (String suffix : SUFFIXES) {//如果以Config/Bean结尾
             if (tag.endsWith(suffix)) {
-                tag = tag.substring(0, tag.length() - suffix.length());
+                tag = tag.substring(0, tag.length() - suffix.length()); // 截取去掉Config/Bean后的字符串
                 break;
             }
         }
-        return tag.substring(0, 1).toLowerCase() + tag.substring(1);
+        return tag.substring(0, 1).toLowerCase() + tag.substring(1); // 类名首字母小写，返回
     }
 
     protected static void appendParameters(Map<String, String> parameters, Object config) {

@@ -86,7 +86,7 @@ public class ClassHelper {
 
     /**
      * get class loader
-     *
+     *    // 当前线程的Thread.currentThread().getContextClassLoade >   clazz.getClassLoader  >  ClassLoader.getSystemClassLoader
      * @param clazz
      * @return class loader
      */
@@ -100,7 +100,7 @@ public class ClassHelper {
         if (cl == null) {
             // No thread context class loader -> use class loader of this class.
             cl = clazz.getClassLoader();
-            if (cl == null) {
+            if (cl == null) { // 返回加载这个类的classLoader，如果是由BootStrap ClassLoader加载，返回null
                 // getClassLoader() returning null indicates the bootstrap ClassLoader
                 try {
                     cl = ClassLoader.getSystemClassLoader();
@@ -241,7 +241,7 @@ public class ClassHelper {
     }
 
     /**
-     *   返回值为基本类型+ public修饰+ getXXX()+ 参数个数不为0
+     *   返回值为基本类型+ public修饰+ getXXX()+ 参数个数为0(无参数)
      *   方法名不能是get() is() getClass() getObject()
      * @param method
      * @return
@@ -257,6 +257,7 @@ public class ClassHelper {
     }
 
     public static boolean isPrimitive(Class<?> type) {
+        // class.isPrimitive() trued当前类代表一个基本类型  boolean, byte, char, short, int, long, float, and double
         return type.isPrimitive()
                 || type == String.class
                 || type == Character.class
@@ -270,6 +271,8 @@ public class ClassHelper {
                 || type == Object.class;
     }
 
+    // 把字面量value，转成指定基本类型（type）的类型值
+    //  (char,"c")---> return 'c'    (int,"3")-->return 3
     public static Object convertPrimitive(Class<?> type, String value) {
         if (type == char.class || type == Character.class) {
             return value.length() > 0 ? value.charAt(0) : '\0';
