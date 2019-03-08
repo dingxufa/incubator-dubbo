@@ -26,6 +26,8 @@ import org.springframework.context.EnvironmentAware;
  * @see AbstractConfig
  * @see EnvironmentAware
  * @since 2.5.11
+ *
+ * <p>继承 EnvironmentAware 接口
  */
 public interface DubboConfigBinder extends EnvironmentAware {
 

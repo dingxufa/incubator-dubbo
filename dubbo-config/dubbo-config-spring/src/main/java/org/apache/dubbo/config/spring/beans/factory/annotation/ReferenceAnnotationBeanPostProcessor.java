@@ -66,6 +66,9 @@ import static org.springframework.core.annotation.AnnotationUtils.getAnnotation;
  * {@link org.springframework.beans.factory.config.BeanPostProcessor} implementation
  * that Consumer service {@link Reference} annotated fields
  *
+ * <p></>
+ * ReferenceAnnotationBeanPostProcessor 实现的就是 支持 @Reference 注解的属性注入。
+ *
  * @since 2.5.7
  */
 public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBeanPostProcessorAdapter
@@ -83,12 +86,16 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
 
     private ClassLoader classLoader;
 
+    // 注入的refrence元数据缓存
     private final ConcurrentMap<String, ReferenceInjectionMetadata> injectionMetadataCache =
             new ConcurrentHashMap<String, ReferenceInjectionMetadata>(256);
 
+
+    // referenceBean缓存
     private final ConcurrentMap<String, ReferenceBean<?>> referenceBeansCache =
             new ConcurrentHashMap<String, ReferenceBean<?>>();
 
+    //????????? key是class类型值 并且继承了Annotation ，
     private static final Map<Class<? extends Annotation>, List<Method>> annotationMethodsCache =
             new ConcurrentReferenceHashMap<Class<? extends Annotation>, List<Method>>(256);
 
@@ -244,6 +251,9 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
     }
 
     @Override
+    /**
+     *  销毁 referenceBeansCache 中的所有bean，并清空 injectionMetadataCache和referenceBeansCache
+     */
     public void destroy() throws Exception {
 
         for (ReferenceBean referenceBean : referenceBeansCache.values()) {
@@ -383,6 +393,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
 
         String referenceBeanCacheKey = generateReferenceBeanCacheKey(reference, referenceClass);
 
+        // 首先，从 referenceBeansCache 缓存中，获得 referenceBeanCacheKey 对应的 ReferenceBean 对象
         ReferenceBean<?> referenceBean = referenceBeansCache.get(referenceBeanCacheKey);
 
         if (referenceBean == null) {
@@ -405,6 +416,8 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
     /**
      * Generate a cache key of {@link ReferenceBean}
      *
+     * <p></>
+     * 为ReferenceBean 产生一个 keys
      * @param reference {@link Reference}
      * @param beanClass {@link Class}
      * @return
@@ -581,6 +594,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
         return ObjectUtils.nullSafeEquals(first, another);
     }
 
+    // Array[]{"a","b","c"}----> return a,b,c
     private String toPlainString(String[] array) {
         if (array == null || array.length == 0) {
             return "";

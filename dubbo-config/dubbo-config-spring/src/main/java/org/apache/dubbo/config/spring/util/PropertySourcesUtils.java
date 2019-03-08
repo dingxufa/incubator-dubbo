@@ -53,7 +53,7 @@ public abstract class PropertySourcesUtils {
             if (source instanceof EnumerablePropertySource) {
                 for (String name : ((EnumerablePropertySource<?>) source).getPropertyNames()) {
                     if (name.startsWith(normalizedPrefix)) {
-                        String subName = name.substring(normalizedPrefix.length());
+                        String subName = name.substring(normalizedPrefix.length());  // prefix.xxxx   subName=xxx
                         String value = propertyResolver.getProperty(name);
                         subProperties.putIfAbsent(subName, value);
                     }
@@ -67,7 +67,7 @@ public abstract class PropertySourcesUtils {
 
     /**
      * Normalize the prefix
-     *
+     * 规范化前缀
      * @param prefix the prefix
      * @return the prefix
      */

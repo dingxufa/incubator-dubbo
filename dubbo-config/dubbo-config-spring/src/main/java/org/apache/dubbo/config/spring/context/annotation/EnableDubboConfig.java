@@ -57,6 +57,8 @@ import java.lang.annotation.Target;
  * <li>{@link ConsumerConfig} binding to property :  "dubbo.consumers"</li>
  * </ul>
  *
+ * {  https://segmentfault.com/a/1190000012661402#articleHeader4  }
+ *
  * @see EnableDubboConfigBinding
  * @see DubboConfigConfiguration
  * @see DubboConfigConfigurationSelector
@@ -70,6 +72,9 @@ import java.lang.annotation.Target;
 public @interface EnableDubboConfig {
 
     /**
+     *  配置是否绑定到多个 Spring Bean 上
+     *
+     * <p>
      * It indicates whether binding to multiple Spring Beans.
      *
      * @return the default value is <code>false</code>

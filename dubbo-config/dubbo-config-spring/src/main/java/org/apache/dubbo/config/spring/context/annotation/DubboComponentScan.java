@@ -31,6 +31,8 @@ import java.lang.annotation.Target;
 /**
  * Dubbo Component Scan {@link Annotation},scans the classpath for annotated components that will be auto-registered as
  * Spring beans. Dubbo-provided {@link Service} and {@link Reference}.
+ * <P></>
+ * 配置要扫描 @Service 和 @Reference 注解的包或者类们，从而创建对应的 Bean 对象
  *
  * @see Service
  * @see Reference
@@ -39,7 +41,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
-@Import(DubboComponentScanRegistrar.class)
+@Import(DubboComponentScanRegistrar.class)  // 表明使用 DubboComponentScanRegistrar 类进行导入
 public @interface DubboComponentScan {
 
     /**
@@ -52,6 +54,8 @@ public @interface DubboComponentScan {
     String[] value() default {};
 
     /**
+     * 要扫描的包的数组
+     * <p></>
      * Base packages to scan for annotated @Service classes. {@link #value()} is an
      * alias for (and mutually exclusive with) this attribute.
      * <p>
@@ -63,6 +67,8 @@ public @interface DubboComponentScan {
     String[] basePackages() default {};
 
     /**
+     * 要扫描的类的数组
+     * <p></>
      * Type-safe alternative to {@link #basePackages()} for specifying the packages to
      * scan for annotated @Service classes. The package of each class specified will be
      * scanned.
