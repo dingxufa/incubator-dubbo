@@ -25,7 +25,8 @@ public class ObjectUtils {
 
     /**
      * of factory method
-     *
+     * <p></>
+     *  返回一个数组
      * @param values
      * @param <T>
      * @return

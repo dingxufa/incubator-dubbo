@@ -35,6 +35,8 @@ import static org.apache.dubbo.config.spring.util.BeanFactoryUtils.getOptionalBe
 
 /**
  * Abstract Configurable {@link Annotation} Bean Builder
+ *
+ * 泛型 A 对应 @Reference 注解，泛型 B 对应 ReferenceBean
  * @since 2.5.7
  */
 abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B extends AbstractInterfaceConfig> {
@@ -47,8 +49,13 @@ abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B exten
 
     protected final ClassLoader classLoader;
 
+    /**
+     * Bean 对象
+     */
     protected Object bean;
-
+    /**
+     * 接口
+     */
     protected Class<?> interfaceClass;
 
     protected AbstractAnnotationConfigBeanBuilder(A annotation, ClassLoader classLoader,
@@ -65,15 +72,17 @@ abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B exten
     /**
      * Build {@link B}
      *
+     * <p></> 模板方法
+     *
      * @return non-null
      * @throws Exception
      */
     public final B build() throws Exception {
-
+        // 校验依赖
         checkDependencies();
-
+        // 执行构造 Bean 对象
         B bean = doBuild();
-
+        // 配置 Bean 对象
         configureBean(bean);
 
         if (logger.isInfoEnabled()) {
@@ -97,17 +106,17 @@ abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B exten
 
 
     protected void configureBean(B bean) throws Exception {
-
+        // 前置配置
         preConfigureBean(annotation, bean);
-
+        // 配置 RegistryConfig 属性
         configureRegistryConfigs(bean);
-
+        // 配置 MonitorConfig 属性
         configureMonitorConfig(bean);
-
+        // 配置 ApplicationConfig 属性
         configureApplicationConfig(bean);
-
+        // 配置 ModuleConfig 属性
         configureModuleConfig(bean);
-
+        // 后置配置
         postConfigureBean(annotation, bean);
 
     }

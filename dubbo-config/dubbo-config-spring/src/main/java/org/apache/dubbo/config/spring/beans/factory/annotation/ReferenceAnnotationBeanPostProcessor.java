@@ -262,7 +262,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
             }
             referenceBean.destroy();
         }
-
+        // 清空缓存
         injectionMetadataCache.clear();
         referenceBeansCache.clear();
 
@@ -417,7 +417,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
      * Generate a cache key of {@link ReferenceBean}
      *
      * <p></>
-     * 为ReferenceBean 产生一个 keys
+     * 为ReferenceBean 产生一个 key
      * @param reference {@link Reference}
      * @param beanClass {@link Class}
      * @return
@@ -474,7 +474,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
 
                 injectedElementReferenceBeanMap.put(fieldElement, fieldElement.referenceBean);
 
-            }
+        }
 
         }
 
@@ -522,6 +522,9 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
     /**
      * Generate a key based on the annotation.
      *
+     * <p></> 根据annotation产生key
+     *
+     * <p> map{ key1:value1 key2:vlaue2} --> return value1/value2
      * @param annotations annotation value
      * @return unique key, never null will be returned.
      * @since 2.7.0
@@ -594,7 +597,13 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
         return ObjectUtils.nullSafeEquals(first, another);
     }
 
-    // Array[]{"a","b","c"}----> return a,b,c
+
+
+    /**
+     * Array[String]{"a","b","c"}----> return a,b,c
+     * @param array
+     * @return
+     */
     private String toPlainString(String[] array) {
         if (array == null || array.length == 0) {
             return "";
