@@ -195,7 +195,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
     }
 
     private void refreshOverrideAndInvoker(List<URL> urls) {
-        // mock zookeeper://xxx?mock=return null
+        // mock zookeeper://xxx?mock=return null 重写URL(mock=return null拼接到URL中)
         overrideDirectoryUrl();
         refreshInvoker(urls);
     }
@@ -238,6 +238,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             if (invokerUrls.isEmpty()) {
                 return;
             }
+            // URL对象转为Invoker
             Map<String, Invoker<T>> newUrlInvokerMap = toInvokers(invokerUrls);// Translate url list to Invoker map
 
             // state change
@@ -256,6 +257,7 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
             this.urlInvokerMap = newUrlInvokerMap;
 
             try {
+                // 关闭无用的Invoker
                 destroyUnusedInvokers(oldUrlInvokerMap, newUrlInvokerMap); // Close the unused Invoker
             } catch (Exception e) {
                 logger.warn("destroyUnusedInvokers error. ", e);

@@ -226,6 +226,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
     }
 
     protected void checkRegistryDataConfig() {
+        //<dubbo:registryData prefix="dubbo.registryData" valid="true" />
         if (registryDataConfig == null) {
             registryDataConfig = new RegistryDataConfig();
         }
@@ -240,13 +241,16 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      *
      * Load the registry and conversion it to {@link URL}, the priority order is: system property > dubbo registry config
      *
+     * <p>加载注册中心 com.alibaba.dubbo.common.URL 数组。</p>
      * @param provider whether it is the provider side
      * @return
      */
     protected List<URL> loadRegistries(boolean provider) {
         // check && override if necessary
+        // 校验 RegistryConfig 配置数组。
         checkRegistry();
         checkRegistryDataConfig();
+        // 创建 注册中心 URL 数组
         List<URL> registryList = new ArrayList<URL>();
         if (registries != null && !registries.isEmpty()) {
             Map<String, String> registryDataConfigurationMap = new HashMap<>(4);
@@ -260,20 +264,24 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                     Map<String, String> map = new HashMap<String, String>();
                     appendParameters(map, application);
                     appendParameters(map, config);
-                    map.put("path", RegistryService.class.getName());
+                    map.put("path", RegistryService.class.getName());//org.apache.dubbo.registry.RegistryService
                     appendRuntimeParameters(map);
+                    // 若不存在 `protocol` 参数，默认 "dubbo" 添加到 `map` 集合中。
                     if (!map.containsKey("protocol")) {
                         map.put("protocol", "dubbo");
                     }
+                    // 解析地址，创建 Dubbo URL 数组。（数组大小可以为一）
                     List<URL> urls = UrlUtils.parseURLs(address, map);
-
+                    // 循环 `url` ，设置 "registry" 和 "protocol" 属性。
                     for (URL url : urls) {
+                        // 设置 `registry=${protocol}` 和 `protocol=registry` 到 URL
                         url = url.addParameter(Constants.REGISTRY_KEY, url.getProtocol());
                         url = url.setProtocol(Constants.REGISTRY_PROTOCOL);
                         // add parameter
                         url = url.addParametersIfAbsent(registryDataConfigurationMap);
-                        if ((provider && url.getParameter(Constants.REGISTER_KEY, true))
-                                || (!provider && url.getParameter(Constants.SUBSCRIBE_KEY, true))) {
+                        // 添加到结果
+                        if ((provider && url.getParameter(Constants.REGISTER_KEY, true)) // 服务提供者 && 注册
+                                || (!provider && url.getParameter(Constants.SUBSCRIBE_KEY, true))) {// 服务消费者 && 订阅
                             registryList.add(url);
                         }
                     }
@@ -306,12 +314,16 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
         map.put(Constants.REGISTER_IP_KEY, hostToRegistry);
         appendParameters(map, monitor);
         appendParameters(map, application);
+
+        // 获得地址
         String address = monitor.getAddress();
         String sysaddress = System.getProperty("dubbo.monitor.address");
         if (sysaddress != null && sysaddress.length() > 0) {
             address = sysaddress;
         }
+        // 直连监控中心服务器地址
         if (ConfigUtils.isNotEmpty(address)) {
+            // 若不存在 `protocol` 参数，默认 "dubbo" 添加到 `map` 集合中。
             if (!map.containsKey(Constants.PROTOCOL_KEY)) {
                 if (getExtensionLoader(MonitorFactory.class).hasExtension("logstat")) {
                     map.put(Constants.PROTOCOL_KEY, "logstat");
@@ -319,8 +331,9 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
                     map.put(Constants.PROTOCOL_KEY, Constants.DOBBO_PROTOCOL);
                 }
             }
+            // 解析地址，创建 Dubbo URL 对象。
             return UrlUtils.parseURL(address, map);
-        } else if (Constants.REGISTRY_PROTOCOL.equals(monitor.getProtocol()) && registryURL != null) {
+        } else if (Constants.REGISTRY_PROTOCOL.equals(monitor.getProtocol()) && registryURL != null) {// 从注册中心发现监控中心地址
           return registryURL.setProtocol(Constants.DOBBO_PROTOCOL).addParameter(Constants.PROTOCOL_KEY, Constants.REGISTRY_PROTOCOL).addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map));
         }
         return null;
@@ -402,12 +415,14 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      *                       side, it is the {@link Class} of the remote service interface that will be referenced
      */
     void checkMock(Class<?> interfaceClass) {
+        // 没有设置mock，直接返回
         if (ConfigUtils.isEmpty(mock)) {
             return;
         }
-
+        // 获取格式化mock方式
         String normalizedMock = MockInvoker.normalizeMock(mock);
-        if (normalizedMock.startsWith(Constants.RETURN_PREFIX)) {
+        //检查mock是否合法
+        if (normalizedMock.startsWith(Constants.RETURN_PREFIX)) {//return
             normalizedMock = normalizedMock.substring(Constants.RETURN_PREFIX.length()).trim();
             try {
                 //Check whether the mock value is legal, if it is illegal, throw exception
@@ -429,6 +444,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
             }
         } else {
             //Check whether the mock class is a implementation of the interfaceClass, and if it has a default constructor
+            //尝试获取class，并实例化，用来查看classpath下是否存在mock类的实现 即  interfaceClass(类名)+Mock 类  不存在抛异常
             MockInvoker.getMockObject(normalizedMock, interfaceClass);
         }
     }

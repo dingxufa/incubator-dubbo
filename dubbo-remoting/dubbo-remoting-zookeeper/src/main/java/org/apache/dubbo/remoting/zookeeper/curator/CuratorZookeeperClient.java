@@ -38,6 +38,9 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * client 对象
+ */
 public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatcher> {
 
     private final Charset charset = Charset.forName("UTF-8");
@@ -47,15 +50,17 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatch
         super(url);
         try {
             int timeout = url.getParameter(Constants.TIMEOUT_KEY, 5000);
+            // 创建 client 对象
             CuratorFrameworkFactory.Builder builder = CuratorFrameworkFactory.builder()
-                    .connectString(url.getBackupAddress())
-                    .retryPolicy(new RetryNTimes(1, 1000))
-                    .connectionTimeoutMs(timeout);
+                    .connectString(url.getBackupAddress()) // 连接地址
+                    .retryPolicy(new RetryNTimes(1, 1000)) // 重试策略，1 次，间隔 1000 ms
+                    .connectionTimeoutMs(timeout);// 连接超时时间
             String authority = url.getAuthority();
             if (authority != null && authority.length() > 0) {
                 builder = builder.authorization("digest", authority.getBytes());
             }
             client = builder.build();
+            // 添加连接监听器
             client.getConnectionStateListenable().addListener(new ConnectionStateListener() {
                 @Override
                 public void stateChanged(CuratorFramework client, ConnectionState state) {
@@ -215,7 +220,7 @@ public class CuratorZookeeperClient extends AbstractZookeeperClient<CuratorWatch
                         // if client connect or disconnect to server, zookeeper will queue
                         // watched event(Watcher.Event.EventType.None, .., path = null).
                         StringUtils.isNotEmpty(path)
-                                ? client.getChildren().usingWatcher(this).forPath(path)
+                                ? client.getChildren().usingWatcher(this).forPath(path) // 重新发起连接，并传入最新的子节点列表
                                 : Collections.<String>emptyList());
             }
         }
