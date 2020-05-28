@@ -149,15 +149,18 @@ final public class MockInvoker<T> implements Invoker<T> {
 
     @SuppressWarnings("unchecked")
     private Invoker<T> getInvoker(String mockService) {
+        //
         Invoker<T> invoker = (Invoker<T>) mocks.get(mockService);
         if (invoker != null) {
             return invoker;
         }
 
+        // 不存在则创建代理，并缓存
         Class<T> serviceType = (Class<T>) ReflectUtils.forName(url.getServiceInterface());
         T mockObject = (T) getMockObject(mockService, serviceType);
         invoker = proxyFactory.getInvoker(mockObject, serviceType, url);
         if (mocks.size() < 10000) {
+            // 缓存的是《类名，类实例的代理》
             mocks.put(mockService, invoker);
         }
         return invoker;

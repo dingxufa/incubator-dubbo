@@ -91,6 +91,7 @@ public class MockClusterInvoker<T> implements Invoker<T> {
                 if (logger.isWarnEnabled()) {
                     logger.warn("fail-mock: " + invocation.getMethodName() + " fail-mock enabled , url : " + directory.getUrl(), e);
                 }
+                // doMockInvoke 内部会创建一个MockInvocker对象，然后调用 MockInvoker.invoke()
                 result = doMockInvoke(invocation, e);
             }
         }
