@@ -53,30 +53,35 @@ public class FailoverClusterInvoker<T> extends AbstractClusterInvoker<T> {
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public Result doInvoke(Invocation invocation, final List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
+        // 所有服务提供者
         List<Invoker<T>> copyInvokers = invokers;
         checkInvokers(copyInvokers, invocation);
         String methodName = RpcUtils.getMethodName(invocation);
+        //获取重试次数  如果用户未设置默认值，则默认值为2 ,再+1    即 总共调用次数= 重试次数 + 1(正常调用);
         int len = getUrl().getMethodParameter(methodName, Constants.RETRIES_KEY, Constants.DEFAULT_RETRIES) + 1;
         if (len <= 0) {
             len = 1;
         }
-        // retry loop.
+        // retry loop.  使用循环，失败重试
         RpcException le = null; // last exception.
         List<Invoker<T>> invoked = new ArrayList<Invoker<T>>(copyInvokers.size()); // invoked invokers.
         Set<String> providers = new HashSet<String>(len);
         for (int i = 0; i < len; i++) {
-            //Reselect before retry to avoid a change of candidate `invokers`.
+            //Reselect before retry to avoid a change of candidate `invokers`.  重试时重新选择，避免重试时invoker列表发生变化
             //NOTE: if `invokers` changed, then `invoked` also lose accuracy.
             if (i > 0) {
-                checkWhetherDestroyed();
+                checkWhetherDestroyed();// 检查当前实例是否已经被销毁，销毁则抛出异常    是否有线程调用了当前RefrenceConfig.destroy(),销毁了当前消费者
+                // 重新获取所有服务提供者 AbstractClusterInvoker.list()-->[AbstractDirectory]directory.list()模板方法-->AbstractDirectory.doList()模板方法--->RegistryDirectory.doList() --->  invokers = routerChain.route(getConsumerUrl(), invocation);
                 copyInvokers = list(invocation);
-                // check again
+                // check again 重新检查一下
                 checkInvokers(copyInvokers, invocation);
             }
+            // 通过负载均衡策略选出服务提供者的Invoker
             Invoker<T> invoker = select(loadbalance, invocation, copyInvokers, invoked);
             invoked.add(invoker);
             RpcContext.getContext().setInvokers((List) invoked);
             try {
+                // 发起远程调用
                 Result result = invoker.invoke(invocation);
                 if (le != null && logger.isWarnEnabled()) {
                     logger.warn("Although retry the method " + methodName
