@@ -95,7 +95,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
     private final ConcurrentMap<String, ReferenceBean<?>> referenceBeansCache =
             new ConcurrentHashMap<String, ReferenceBean<?>>();
 
-    //????????? key是class类型值 并且继承了Annotation ，
+    //????????? key是class类型值 并且继承了Annotation
     private static final Map<Class<? extends Annotation>, List<Method>> annotationMethodsCache =
             new ConcurrentReferenceHashMap<Class<? extends Annotation>, List<Method>>(256);
 
@@ -396,6 +396,7 @@ public class ReferenceAnnotationBeanPostProcessor extends InstantiationAwareBean
         // 首先，从 referenceBeansCache 缓存中，获得 referenceBeanCacheKey 对应的 ReferenceBean 对象
         ReferenceBean<?> referenceBean = referenceBeansCache.get(referenceBeanCacheKey);
 
+        // 然后，如果不存在，则进行创建。然后，添加到 referenceBeansCache 缓存中。
         if (referenceBean == null) {
 
             ReferenceBeanBuilder beanBuilder = ReferenceBeanBuilder

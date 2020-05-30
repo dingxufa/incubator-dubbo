@@ -35,7 +35,8 @@ import static org.apache.dubbo.config.spring.util.ObjectUtils.of;
 
 /**
  * {@link ReferenceBean} Builder
- *
+ * <p></>
+ * 继承 AbstractAnnotationConfigBeanBuilder 抽象类，ReferenceBean 的构建器
  * @since 2.5.7
  */
 class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference, ReferenceBean> {
@@ -46,7 +47,7 @@ class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference
     }
 
     private void configureInterface(Reference reference, ReferenceBean referenceBean) {
-
+        // 首先，从 @Reference 获得 interfaceName 属性，从而获得 interfaceClass 类
         Class<?> interfaceClass = reference.interfaceClass();
 
         if (void.class.equals(interfaceClass)) {
@@ -62,7 +63,7 @@ class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference
             }
 
         }
-
+// 如果获得不到，则使用 interfaceClass 即可
         if (interfaceClass == null) {
             interfaceClass = this.interfaceClass;
         }
@@ -76,25 +77,29 @@ class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference
 
 
     private void configureConsumerConfig(Reference reference, ReferenceBean<?> referenceBean) {
-
+        // 获得 ConsumerConfig 对象
         String consumerBeanName = reference.consumer();
 
         ConsumerConfig consumerConfig = getOptionalBean(applicationContext, consumerBeanName, ConsumerConfig.class);
-
+        // 设置到 referenceBean 中
         referenceBean.setConsumer(consumerConfig);
 
     }
 
     @Override
     protected ReferenceBean doBuild() {
+        // 创建 ReferenceBean 对象
         return new ReferenceBean<Object>();
     }
 
     @Override
     protected void preConfigureBean(Reference reference, ReferenceBean referenceBean) {
         Assert.notNull(interfaceClass, "The interface class must set first!");
+
+        // 创建 DataBinder 对象
         DataBinder dataBinder = new DataBinder(referenceBean);
         // Set ConversionService
+        // 注册指定属性的自定义 Editor
         dataBinder.setConversionService(getConversionService());
         // Ignore those fields
         String[] ignoreAttributeNames = of("application", "module", "consumer", "monitor", "registry");
@@ -133,13 +138,13 @@ class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference
 
     @Override
     protected void postConfigureBean(Reference annotation, ReferenceBean bean) throws Exception {
-
+        // 设置 applicationContext
         bean.setApplicationContext(applicationContext);
-
+        // 配置 interfaceClass
         configureInterface(annotation, bean);
-
+        // 配置 ConsumerConfig
         configureConsumerConfig(annotation, bean);
-
+        // 执行 Bean 后置属性初始化
         bean.afterPropertiesSet();
 
     }
