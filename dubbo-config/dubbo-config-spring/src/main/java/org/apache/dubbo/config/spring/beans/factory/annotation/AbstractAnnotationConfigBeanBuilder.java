@@ -36,7 +36,7 @@ import static org.apache.dubbo.config.spring.util.BeanFactoryUtils.getOptionalBe
 /**
  * Abstract Configurable {@link Annotation} Bean Builder
  *
- * 泛型 A 对应 @Reference 注解，泛型 B 对应 ReferenceBean 类
+ * 泛型 A 对应 @Reference 注解，泛型 B 对应 ReferenceBean
  * @since 2.5.7
  */
 abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B extends AbstractInterfaceConfig> {
@@ -72,11 +72,12 @@ abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B exten
     /**
      * Build {@link B}
      *
+     * <p></> 模板方法
+     *
      * @return non-null
      * @throws Exception
      */
     public final B build() throws Exception {
-
         // 校验依赖
         checkDependencies();
         // 执行构造 Bean 对象
@@ -120,7 +121,7 @@ abstract class AbstractAnnotationConfigBeanBuilder<A extends Annotation, B exten
 
     }
 
-    protected abstract void preConfigureBean(A annotation, B bean) throws Exception;// 抽象方法
+    protected abstract void preConfigureBean(A annotation, B bean) throws Exception;
 
 
     private void configureRegistryConfigs(B bean) {

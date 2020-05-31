@@ -453,6 +453,9 @@ public abstract class AbstractConfig implements Serializable {
         return propertyName;
     }
 
+    // eg  name=isDefault ---> return default
+    // eg StringUtils.camelToSplitName("ThisIsADemoStr",".")-->this.is.a.demo.str
+    //eg  StringUtils.camelToSplitName("thisisademostr",".")-->thisisademostr
     private static String calculatePropertyFromGetter(String name) {
         int i = name.startsWith("get") ? 3 : 2;
         return StringUtils.camelToSplitName(name.substring(i, i + 1).toLowerCase() + name.substring(i + 1), ".");

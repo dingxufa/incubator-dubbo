@@ -77,10 +77,10 @@ public class MockClusterInvoker<T> implements Invoker<T> {
             if (logger.isWarnEnabled()) {
                 logger.warn("force-mock: " + invocation.getMethodName() + " force-mock enabled , url : " + directory.getUrl());
             }
-            //force:direct mock
+            //force:direct mock   不发起远程调用，直接返回mock值
             result = doMockInvoke(invocation, null);
         } else {
-            //fail-mock
+            //fail-mock  先发起远程调用，成功返回远程结果，远程调用失败，直接返回mock值
             try {
                 result = this.invoker.invoke(invocation);
             } catch (RpcException e) {
@@ -91,6 +91,7 @@ public class MockClusterInvoker<T> implements Invoker<T> {
                 if (logger.isWarnEnabled()) {
                     logger.warn("fail-mock: " + invocation.getMethodName() + " fail-mock enabled , url : " + directory.getUrl(), e);
                 }
+                // doMockInvoke 内部会创建一个MockInvocker对象，然后调用 MockInvoker.invoke()
                 result = doMockInvoke(invocation, e);
             }
         }

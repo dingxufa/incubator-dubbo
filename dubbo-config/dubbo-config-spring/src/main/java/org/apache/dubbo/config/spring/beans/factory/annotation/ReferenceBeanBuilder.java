@@ -63,7 +63,7 @@ class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference
             }
 
         }
-// 如果获得不到，则使用 interfaceClass 即可
+        // 如果获得不到，则使用 interfaceClass 即可
         if (interfaceClass == null) {
             interfaceClass = this.interfaceClass;
         }
@@ -95,16 +95,16 @@ class ReferenceBeanBuilder extends AbstractAnnotationConfigBeanBuilder<Reference
     @Override
     protected void preConfigureBean(Reference reference, ReferenceBean referenceBean) {
         Assert.notNull(interfaceClass, "The interface class must set first!");
-
         // 创建 DataBinder 对象
         DataBinder dataBinder = new DataBinder(referenceBean);
         // Set ConversionService
-        // 注册指定属性的自定义 Editor
         dataBinder.setConversionService(getConversionService());
         // Ignore those fields
+        //
         String[] ignoreAttributeNames = of("application", "module", "consumer", "monitor", "registry");
 //        dataBinder.setDisallowedFields(ignoreAttributeNames);
         // Bind annotation attributes
+        // 将注解的属性，设置到 reference 中
         dataBinder.bind(new AnnotationPropertyValuesAdapter(reference, applicationContext.getEnvironment(), ignoreAttributeNames));
     }
 
