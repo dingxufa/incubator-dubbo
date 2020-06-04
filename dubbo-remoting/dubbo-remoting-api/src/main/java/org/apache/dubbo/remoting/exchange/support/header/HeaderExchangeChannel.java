@@ -111,8 +111,10 @@ final class HeaderExchangeChannel implements ExchangeChannel {
         req.setVersion(Version.getProtocolVersion());
         req.setTwoWay(true);
         req.setData(request);
+        // 创建DefaultFuture      TODO：创建DefaultFuture对象并启动一个定时器（延时任务），在超时时间后检查是否已经有响应结果，如果有直接返回，否则返回超时时间
         DefaultFuture future = DefaultFuture.newFuture(channel, req, timeout);
         try {
+            //发送到远端并返回future
             channel.send(req);
         } catch (RemotingException e) {
             future.cancel();
