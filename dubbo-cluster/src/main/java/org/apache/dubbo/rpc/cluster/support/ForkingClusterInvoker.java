@@ -58,9 +58,11 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
     public Result doInvoke(final Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
         try {
             checkInvokers(invokers, invocation);
+            // 获取配置参数
             final List<Invoker<T>> selected;
             final int forks = getUrl().getParameter(Constants.FORKS_KEY, Constants.DEFAULT_FORKS);
             final int timeout = getUrl().getParameter(Constants.TIMEOUT_KEY, Constants.DEFAULT_TIMEOUT);
+            // 获取并执行invoker列表
             if (forks <= 0 || forks >= invokers.size()) {
                 selected = invokers;
             } else {
@@ -74,6 +76,7 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
                     }
                 }
             }
+            // 使用线程池让invoker列表中的invoker并发执行
             RpcContext.getContext().setInvokers((List) selected);
             final AtomicInteger count = new AtomicInteger();
             final BlockingQueue<Object> ref = new LinkedBlockingQueue<>();
@@ -86,6 +89,8 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
                             ref.offer(result);
                         } catch (Throwable e) {
                             int value = count.incrementAndGet();
+                            // ？？？？？？？？？？？？？
+                            // 如果异常次数>=forks参数，则说明forks个并发调用 全部 失败了，这时候把异常放到并发安全的队列中
                             if (value >= selected.size()) {
                                 ref.offer(e);
                             }
@@ -94,6 +99,8 @@ public class ForkingClusterInvoker<T> extends AbstractClusterInvoker<T> {
                 });
             }
             try {
+                // 阻塞获取执行结果并返回 启动forks个请求，只要有一个请求返回，ref中就有元素，就直接返回远程调用结果
+                // 如果forks个请求都调用失败， 远程调用超时时间和poll方法的超时时间相同，并且是远程调用先发起的，所以会返回上面设置异常
                 Object ret = ref.poll(timeout, TimeUnit.MILLISECONDS);
                 if (ret instanceof Throwable) {
                     Throwable e = (Throwable) ret;
