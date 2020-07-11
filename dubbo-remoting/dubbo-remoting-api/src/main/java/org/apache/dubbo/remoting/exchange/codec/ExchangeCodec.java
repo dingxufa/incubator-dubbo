@@ -68,11 +68,14 @@ public class ExchangeCodec extends TelnetCodec {
 
     @Override
     public void encode(Channel channel, ChannelBuffer buffer, Object msg) throws IOException {
+        // 对请求信息进行编码
         if (msg instanceof Request) {
             encodeRequest(channel, buffer, (Request) msg);
         } else if (msg instanceof Response) {
+            // 对响应信息进行编码
             encodeResponse(channel, buffer, (Response) msg);
         } else {
+            // 对其他信息进行编码
             super.encode(channel, buffer, msg);
         }
     }
@@ -211,26 +214,27 @@ public class ExchangeCodec extends TelnetCodec {
     }
 
     protected void encodeRequest(Channel channel, ChannelBuffer buffer, Request req) throws IOException {
+        // 获取序列化扩展实现  channel.getUrl()的参数serialization，默认是hessian2
         Serialization serialization = getSerialization(channel);
-        // header.
+        // header.  创建dubbo协议扩展头字节数组，HEADER_LENGHT=16  协议头是16个字节
         byte[] header = new byte[HEADER_LENGTH];
-        // set magic number.
+        // set magic number. 设置魔术数，标志协议的开始
         Bytes.short2bytes(MAGIC, header);
 
-        // set request and serialization flag.
+        // set request and serialization flag. 设置请求和序列化标志，标志到协议头
         header[2] = (byte) (FLAG_REQUEST | serialization.getContentTypeId());
 
         if (req.isTwoWay()) {
-            header[2] |= FLAG_TWOWAY;
+            header[2] |= FLAG_TWOWAY;  // header[2] = header[2] | FLAG_TWOWAY
         }
         if (req.isEvent()) {
             header[2] |= FLAG_EVENT;
         }
 
-        // set request id.
+        // set request id.  将请求id设置到协议头
         Bytes.long2bytes(req.getId(), header, 4);
 
-        // encode request data.
+        // encode request data.  使用获取到的serialization 对 对象数据部分进行编码，并把协议数据部分写入缓存
         int savedWriteIndex = buffer.writerIndex();
         buffer.writerIndex(savedWriteIndex + HEADER_LENGTH);
         ChannelBufferOutputStream bos = new ChannelBufferOutputStream(buffer);
@@ -240,20 +244,23 @@ public class ExchangeCodec extends TelnetCodec {
         } else {
             encodeRequestData(channel, out, req.getData(), req.getVersion());
         }
+        // 刷新缓存
         out.flushBuffer();
         if (out instanceof Cleanable) {
             ((Cleanable) out).cleanup();
         }
         bos.flush();
         bos.close();
+
         int len = bos.writtenBytes();
+        // 检查协议数据部分是否合法     数据部分的大小是否超过了设置
         checkPayload(channel, len);
         Bytes.int2bytes(len, header, 12);
 
-        // write
-        buffer.writerIndex(savedWriteIndex);
+        // write  将协议头写入缓存
+        buffer.writerIndex(savedWriteIndex);  // 设置写入数据的索引 移动缓存的写入下标
         buffer.writeBytes(header); // write header.
-        buffer.writerIndex(savedWriteIndex + HEADER_LENGTH + len);
+        buffer.writerIndex(savedWriteIndex + HEADER_LENGTH + len);     //dubbo协议: header(16字节)+ body
     }
 
     protected void encodeResponse(Channel channel, ChannelBuffer buffer, Response res) throws IOException {
