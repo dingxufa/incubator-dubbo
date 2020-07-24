@@ -280,7 +280,7 @@ public class HashedWheelTimer implements Timer {
             throw new IllegalArgumentException(
                     "ticksPerWheel may not be greater than 2^30: " + ticksPerWheel);
         }
-
+        // (size)ticksPerWheel 转换为2的N次方，  比如 ticksPerWheel=32 返回32  /   ticksPerWheel=33 返回64
         ticksPerWheel = normalizeTicksPerWheel(ticksPerWheel);
         HashedWheelBucket[] wheel = new HashedWheelBucket[ticksPerWheel];
         for (int i = 0; i < wheel.length; i++) {

@@ -62,7 +62,7 @@ public class InjvmProtocol extends AbstractProtocol implements Protocol {
 
     static Exporter<?> getExporter(Map<String, Exporter<?>> map, URL key) {
         Exporter<?> result = null;
-
+        //看缓存里面是否有对应的本地导出服务
         if (!key.getServiceKey().contains("*")) {
             result = map.get(key.getServiceKey());
         } else {
@@ -76,12 +76,13 @@ public class InjvmProtocol extends AbstractProtocol implements Protocol {
             }
         }
 
+        // 没有则返回null
         if (result == null) {
             return null;
-        } else if (ProtocolUtils.isGeneric(
+        } else if (ProtocolUtils.isGeneric(// 如果是泛型调用 返回null
                 result.getInvoker().getUrl().getParameter(Constants.GENERIC_KEY))) {
             return null;
-        } else {
+        } else {// 返回缓存里的本地导出服务
             return result;
         }
     }

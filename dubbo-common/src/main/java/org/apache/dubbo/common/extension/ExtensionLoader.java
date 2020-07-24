@@ -1105,10 +1105,10 @@ public class ExtensionLoader<T> {
                 code.append(s);
 
                 // return statement
+
                 if (!rt.equals(void.class)) {
                     code.append("\nreturn ");
                 }
-
                 s = String.format("extension.%s(", method.getName());
                 code.append(s);
                 for (int i = 0; i < pts.length; i++) {
