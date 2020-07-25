@@ -47,7 +47,7 @@ public class JavassistCompiler extends AbstractCompiler {
 
     private static final Pattern FIELD_PATTERN = Pattern.compile("[^\n]+=[^\n]+;");
 
-    @Override
+    @Override //name=ProxyFactory$Adaptive source=对应源码
     public Class<?> doCompile(String name, String source) throws Throwable {
         int i = name.lastIndexOf('.');
         String className = i < 0 ? name : name.substring(i + 1);

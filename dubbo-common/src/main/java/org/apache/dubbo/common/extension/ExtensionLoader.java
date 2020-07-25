@@ -71,7 +71,7 @@ public class ExtensionLoader<T> {
 
     private static final String DUBBO_INTERNAL_DIRECTORY = DUBBO_DIRECTORY + "internal/";
 
-//    拓展名分隔符，使用逗号
+    //拓展名分隔符，使用逗号
     private static final Pattern NAME_SEPARATOR = Pattern.compile("\\s*[,]+\\s*");
 
     /**
@@ -107,7 +107,7 @@ public class ExtensionLoader<T> {
     /**
     * 缓存的拓展名与拓展类的映射。
     * 和 {@link #cachedClasses} 的 KV 对调。
-    * 通过 {@link #loadExtensionClasses} 加载
+    * 通过 {@link #loadExtensionClasses} 加载  eg: "class org.apache.dubbo.common.extension.factory.SpiExtensionFactory" -> "spi"
     */
     private final ConcurrentMap<Class<?>, String> cachedNames = new ConcurrentHashMap<Class<?>, String>();
 
@@ -457,7 +457,7 @@ public class ExtensionLoader<T> {
                 instance = holder.get();
                 if (instance == null) {
                     // 从 缓存中 未获取到，进行创建缓存对象。
-                    instance = createExtension(name);
+                    instance = createExtension(name);  //eg name=spi 则创建对应的class实例 spi=org.apache.dubbo.common.extension.factory.SpiExtensionFactory
                     // 设置创建对象到缓存中
                     holder.set(instance);
                 }
@@ -475,7 +475,7 @@ public class ExtensionLoader<T> {
                 || "true".equals(cachedDefaultName)) {
             return null;
         }
-        return getExtension(cachedDefaultName);
+        return getExtension(cachedDefaultName);//对应文件中key=clazz cachedDefaultName=SPI("value")中的value
     }
 
     public boolean hasExtension(String name) {
@@ -487,6 +487,7 @@ public class ExtensionLoader<T> {
     }
 
     public Set<String> getSupportedExtensions() {
+        // eg. "spi" -> "class org.apache.dubbo.common.extension.factory.SpiExtensionFactory"
         Map<String, Class<?>> clazzes = getExtensionClasses();
         return Collections.unmodifiableSet(new TreeSet<String>(clazzes.keySet()));
     }
@@ -591,8 +592,8 @@ public class ExtensionLoader<T> {
         Object instance = cachedAdaptiveInstance.get();
         if (instance == null) {
             if (createAdaptiveInstanceError == null) {
-                synchronized (cachedAdaptiveInstance) {
                     instance = cachedAdaptiveInstance.get();
+                        synchronized (cachedAdaptiveInstance) {
                     if (instance == null) {
                         try {
                             instance = createAdaptiveExtension();
@@ -643,13 +644,14 @@ public class ExtensionLoader<T> {
      */
     @SuppressWarnings("unchecked")
     private T createExtension(String name) {
-        // 获得拓展名对应的拓展实现类
+        // 获得拓展名对应的拓展实现类 SPI("vlaue") value对应的clazz
         Class<?> clazz = getExtensionClasses().get(name);
         if (clazz == null) {
             throw findException(name);
         }
         try {
-            // 从缓存中，获得拓展对象。
+            // 从缓存中，获得拓展对象。 EXTENSION_INSTANCES<clazz,insatance>
+            // file:spi=org.apache.dubbo.common.extension.factory.SpiExtensionFactory <org.apache.dubbo.common.extension.factory.SpiExtensionFactory,instance>
             T instance = (T) EXTENSION_INSTANCES.get(clazz);
             if (instance == null) {
                 // 当缓存不存在时，创建拓展对象，并添加到缓存中。
@@ -762,6 +764,7 @@ public class ExtensionLoader<T> {
 
         // 从配置文件中，加载拓展实现类数组
         Map<String, Class<?>> extensionClasses = new HashMap<String, Class<?>>();
+        // META-INF/dubbo/internal/org.apache.dubbo.common.extension.ExtensionFactory
         loadDirectory(extensionClasses, DUBBO_INTERNAL_DIRECTORY, type.getName());
         loadDirectory(extensionClasses, DUBBO_INTERNAL_DIRECTORY, type.getName().replace("org.apache", "com.alibaba"));
         loadDirectory(extensionClasses, DUBBO_DIRECTORY, type.getName());
@@ -769,10 +772,12 @@ public class ExtensionLoader<T> {
         loadDirectory(extensionClasses, SERVICES_DIRECTORY, type.getName());
         loadDirectory(extensionClasses, SERVICES_DIRECTORY, type.getName().replace("org.apache", "com.alibaba"));
         return extensionClasses;
-    }
+}
 
 
     private void loadDirectory(Map<String, Class<?>> extensionClasses, String dir, String type) {
+        //META-INF/dubbo/internal/org.apache.dubbo.common.extension.ExtensionFactory
+        //META-INF/dubbo/internal/org.apache.dubbo.common.extension.ext1.SimpleExt   META-INF/dubbo/internal/org.apache.dubbo.rpc.Filter
         String fileName = dir + type;
         try {
             Enumeration<java.net.URL> urls;
@@ -784,6 +789,7 @@ public class ExtensionLoader<T> {
             }
             if (urls != null) {
                 while (urls.hasMoreElements()) {
+                    //  file:/D:/workSpace/git/incubator-dubbo/dubbo-common/target/classes/META-INF/dubbo/internal/org.apache.dubbo.common.extension.ExtensionFactory   file:/D:/workSpace/git/incubator-dubbo/dubbo-registry/dubbo-registry-api/target/classes/META-INF/dubbo/internal/org.apache.dubbo.rpc.Protocol file:/D:/workSpace/git/incubator-dubbo/dubbo-rpc/dubbo-rpc-api/target/classes/META-INF/dubbo/internal/org.apache.dubbo.rpc.Protocol
                     java.net.URL resourceURL = urls.nextElement();
                     loadResource(extensionClasses, classLoader, resourceURL);
                 }
@@ -798,7 +804,7 @@ public class ExtensionLoader<T> {
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(resourceURL.openStream(), "utf-8"));
             try {
-                String line;
+                String line;// eg: adaptive=org.apache.dubbo.common.extension.factory.AdaptiveExtensionFactory  impl1=org.apache.dubbo.common.extension.ext1.impl.SimpleExtImpl1
                 while ((line = reader.readLine()) != null) {
                     // 跳过当前被注释掉的情况，例如 #spring=xxxxxxxxx
                     final int ci = line.indexOf('#');
@@ -840,7 +846,7 @@ public class ExtensionLoader<T> {
                     type + ", class line: " + clazz.getName() + "), class "
                     + clazz.getName() + "is not subtype of interface.");
         }
-        // 缓存自适应拓展对象的类到 `cachedAdaptiveClass`
+        // 缓存自适应拓展对象的类到 `cachedAdaptiveClass` 这里得到的class有3种情况，1.class类上有@Adaptive
         if (clazz.isAnnotationPresent(Adaptive.class)) {
             if (cachedAdaptiveClass == null) {
                 cachedAdaptiveClass = clazz;
@@ -849,7 +855,7 @@ public class ExtensionLoader<T> {
                         + cachedAdaptiveClass.getClass().getName()
                         + ", " + clazz.getClass().getName());
             }
-        } else if (isWrapperClass(clazz)) {
+        } else if (isWrapperClass(clazz)) { // clazz是指定SPI的代理类 eg. ProtocolFilterWrapper(Protocol protocol)
             // 缓存拓展 Wrapper 实现类到 `cachedWrapperClasses`
             Set<Class<?>> wrappers = cachedWrapperClasses;
             if (wrappers == null) {
@@ -889,6 +895,7 @@ public class ExtensionLoader<T> {
                     // 缓存拓展实现类到 `extensionClasses`
                     Class<?> c = extensionClasses.get(n);
                     if (c == null) {
+                        //对应文件中的 "spi" -> "class org.apache.dubbo.common.extension.factory.SpiExtensionFactory"
                         extensionClasses.put(n, clazz);
                     } else if (c != clazz) {
                         throw new IllegalStateException("Duplicate extension " + type.getName() + " name " + n + " on " + c.getName() + " and " + clazz.getName());
@@ -923,13 +930,14 @@ public class ExtensionLoader<T> {
     @SuppressWarnings("unchecked")
     private T createAdaptiveExtension() {
         try {
-            return injectExtension((T) getAdaptiveExtensionClass().newInstance());
+            return injectExtension((T) getAdaptiveExtensionClass().newInstance()); //class org.apache.dubbo.common.extension.factory.AdaptiveExtensionFactory
         } catch (Exception e) {
             throw new IllegalStateException("Can not create adaptive extension " + type + ", cause: " + e.getMessage(), e);
         }
     }
 
     private Class<?> getAdaptiveExtensionClass() {
+        //从指定路径读取文件获取文件中的key/value eg./META-INF/dubbo/internal/org.apache.common.extension.extensionFactory  spi=org.apache.dubbo.common.extension.factory.SpiExtensionFactory
         getExtensionClasses();
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;

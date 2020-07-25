@@ -39,7 +39,7 @@ public class AdaptiveExtensionFactory implements ExtensionFactory {
         // 使用 ExtensionLoader 加载拓展对象实现类。
         ExtensionLoader<ExtensionFactory> loader = ExtensionLoader.getExtensionLoader(ExtensionFactory.class);
         List<ExtensionFactory> list = new ArrayList<ExtensionFactory>();
-        for (String name : loader.getSupportedExtensions()) {
+        for (String name : loader.getSupportedExtensions()) {// spi
             list.add(loader.getExtension(name));
         }
         factories = Collections.unmodifiableList(list);

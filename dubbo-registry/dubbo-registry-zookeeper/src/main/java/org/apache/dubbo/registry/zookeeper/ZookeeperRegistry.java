@@ -130,14 +130,18 @@ public class ZookeeperRegistry extends FailbackRegistry {
                 String root = toRootPath();
                 ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
                 if (listeners == null) {
+                    //listeners为空说明缓存中没有， 这里把1isteners放入缓存
                     zkListeners.putIfAbsent(url, new ConcurrentHashMap<>());
                     listeners = zkListeners.get(url);
                 }
                 ChildListener zkListener = listeners.get(listener);
                 if (zkListener == null) {
+                    //zookeeper 注册中心变更时触发通知客户端，执行  new ChildListener()
                     listeners.putIfAbsent(listener, (parentPath, currentChilds) -> {
+                        // 如果子节点有变化，则接到通知，遍历所有子节点
                         for (String child : currentChilds) {
                             child = URL.decode(child);
+                            // 如果子节点还未被订阅，说明是新的节点，则订阅
                             if (!anyServices.contains(child)) {
                                 anyServices.add(child);
                                 subscribe(url.setPath(child).addParameters(Constants.INTERFACE_KEY, child,
@@ -147,8 +151,11 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     });
                     zkListener = listeners.get(listener);
                 }
+                //创建持久节点，订阅持久节点的直接子节点
                 zkClient.create(root, false);
+                //增加当前节点的订阅， 并且会返回该节点下所有子节点列表
                 List<String> services = zkClient.addChildListener(root, zkListener);
+                //遍历所有的子节点进行订阅
                 if (services != null && !services.isEmpty()) {
                     for (String service : services) {
                         service = URL.decode(service);
@@ -176,6 +183,8 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
+                //回调NotifyListener,更新本地缓存信息  此处会根据URL中的category属性值获取具体的类别： providers、 routers、
+                //consumers> configurators,然后拉取直接子节点的数据进行通知(notify)。
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {
@@ -236,7 +245,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
         if (Constants.ANY_VALUE.equals(name)) {
             return toRootPath();
         }
-        return toRootDir() + URL.encode(name);
+        return toRootDir() + URL.encode(name);// /dubbo/ + org.apache.dubbo.test.injvmServie
     }
 
     private String[] toCategoriesPath(URL url) {

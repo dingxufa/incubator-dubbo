@@ -49,7 +49,7 @@ public class ProtocolListenerWrapper implements Protocol {
         return protocol.getDefaultPort();
     }
 
-    @Override
+    @Override //interface org.apache.dubbo.config.api.DemoService -> injvm://127.0.0.1/org.apache.dubbo.config.api.DemoService?anyhost=true&application=app&bind.ip=172.16.226.1&bind.port=59022&default.export=true&dubbo=2.0.2&echo.0.callback=false&export=true&generic=false&interface=org.apache.dubbo.config.api.DemoService&methods=getUsers,sayName,echo,getBox,throwDemoException&pid=12364&side=provider&specVersion=&timestamp=1595231300366
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         if (Constants.REGISTRY_PROTOCOL.equals(invoker.getUrl().getProtocol())) {
             return protocol.export(invoker);

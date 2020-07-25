@@ -71,6 +71,7 @@ public class RedisRegistry extends FailbackRegistry {
 
     private final Map<String, JedisPool> jedisPools = new ConcurrentHashMap<>();
 
+    // Notifier是一个带有重试功能的线程
     private final ConcurrentMap<String, Notifier> notifiers = new ConcurrentHashMap<String, Notifier>();
 
     private final int reconnectPeriod;
@@ -176,6 +177,7 @@ public class RedisRegistry extends FailbackRegistry {
                     for (URL url : new HashSet<URL>(getRegistered())) {
                         if (url.getParameter(Constants.DYNAMIC_KEY, true)) {
                             String key = toCategoryPath(url);
+                            //如果续期返回1,则说明key已经被删除了， 这次算重新发布， 因此在通道中广播
                             if (jedis.hset(key, url.toFullString(), String.valueOf(System.currentTimeMillis() + expirePeriod)) == 1) {
                                 jedis.publish(key, Constants.REGISTER);
                             }
@@ -197,6 +199,7 @@ public class RedisRegistry extends FailbackRegistry {
     }
 
     // The monitoring center is responsible for deleting outdated dirty data
+    // 删除过期数据
     private void clean(Jedis jedis) {
         Set<String> keys = jedis.keys(root + Constants.ANY_VALUE);
         if (keys != null && !keys.isEmpty()) {
@@ -219,6 +222,7 @@ public class RedisRegistry extends FailbackRegistry {
                         }
                     }
                     if (delete) {
+                        //发布key的unregister事件
                         jedis.publish(key, Constants.UNREGISTER);
                     }
                 }
@@ -272,19 +276,24 @@ public class RedisRegistry extends FailbackRegistry {
 
     @Override
     public void doRegister(URL url) {
+        // 生成Redis的key
         String key = toCategoryPath(url);
         String value = url.toFullString();
+        // 注册到Redis注册中心， expire为超时时间
         String expire = String.valueOf(System.currentTimeMillis() + expirePeriod);
         boolean success = false;
         RpcException exception = null;
+        //遍历连接池中的所有节点
         for (Map.Entry<String, JedisPool> entry : jedisPools.entrySet()) {
             JedisPool jedisPool = entry.getValue();
             try {
                 Jedis jedis = jedisPool.getResource();
                 try {
+                    // 注册到Redis注册中心， expire为超时时间 并发布注册事件REGISTER
                     jedis.hset(key, value, expire);
                     jedis.publish(key, Constants.REGISTER);
                     success = true;
+                    //如果Redis使用非replicate模式,只需要写一个节点， 因此可以直接“break”；否则遍历所有节点,依次写入注册信息
                     if (!replicate) {
                         break; //  If the server side has synchronized data, just write a single machine
                     }
@@ -296,7 +305,7 @@ public class RedisRegistry extends FailbackRegistry {
             }
         }
         if (exception != null) {
-            if (success) {
+            if (success) {//注意这里，只要第一个注册成功，success就一直是true
                 logger.warn(exception.getMessage(), exception);
             } else {
                 throw exception;
@@ -356,6 +365,7 @@ public class RedisRegistry extends FailbackRegistry {
             try {
                 Jedis jedis = jedisPool.getResource();
                 try {
+                    //以*结尾的，如服务治理中心，订阅所有的服务
                     if (service.endsWith(Constants.ANY_VALUE)) {
                         admin = true;
                         Set<String> keys = jedis.keys(service);
@@ -375,6 +385,7 @@ public class RedisRegistry extends FailbackRegistry {
                             }
                         }
                     } else {
+                        //不以*结尾的，如服务提供者，服务消费者
                         doNotify(jedis, jedis.keys(service + Constants.PATH_SEPARATOR + Constants.ANY_VALUE), url, Arrays.asList(listener));
                     }
                     success = true;
@@ -587,8 +598,8 @@ public class RedisRegistry extends FailbackRegistry {
                                 try {
                                     jedis = jedisPool.getResource();
                                     try {
-                                        if (service.endsWith(Constants.ANY_VALUE)) {
-                                            if (!first) {
+                                        if (service.endsWith(Constants.ANY_VALUE)) {//以*结尾的进这里， 如服务治理中心,订阅所有服务
+                                            if (!first) {//如果不是第一次， 则获取所有的服务key,并更新本地缓存
                                                 first = false;
                                                 Set<String> keys = jedis.keys(service);
                                                 if (keys != null && !keys.isEmpty()) {
@@ -596,15 +607,16 @@ public class RedisRegistry extends FailbackRegistry {
                                                         doNotify(jedis, s);
                                                     }
                                                 }
-                                                resetSkip();
+                                                resetSkip();//由于连接过程允许一定量的失败， 会做重置,此处则重置了计数器
                                             }
                                             jedis.psubscribe(new NotifySub(jedisPool), service); // blocking
                                         } else {
-                                            if (!first) {
+                                            if (!first) {//如果不以*结尾， 如服务提供者或消费者， 则进来这里如果不是第一次， 则代表已经订阅过
                                                 first = false;
-                                                doNotify(jedis, service);
+                                                doNotify(jedis, service); //触发通知，更新本地缓存，重置失败计数器
                                                 resetSkip();
                                             }
+                                            //订阅一个或多个符合给定模式的频道
                                             jedis.psubscribe(new NotifySub(jedisPool), service + Constants.PATH_SEPARATOR + Constants.ANY_VALUE); // blocking
                                         }
                                         break;
