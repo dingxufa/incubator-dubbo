@@ -38,19 +38,22 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * FailbackRegistry. (SPI, Prototype, ThreadSafe)
+ * 继承了AbstractRegistry，在此基础上增加了失败重试机制作为抽象能力。 ZookeeperRegistry和RedisRegistry继承该抽象方法后， 直接使用即可。
+ * FailbackRegistry又继承了 AbstractRegistry,重写了父类的注册、 订阅、 查询和通知等
+ * 方法， 并且添加了重试机制。 此外， 还添加了四个未实现的抽象模板方法
  */
 public abstract class FailbackRegistry extends AbstractRegistry {
 
     /*  retry task map */
-
+    //发起注册失败的URL集合
     private final ConcurrentMap<URL, FailedRegisteredTask> failedRegistered = new ConcurrentHashMap<URL, FailedRegisteredTask>();
-
+    //取消注册失败的URL集合
     private final ConcurrentMap<URL, FailedUnregisteredTask> failedUnregistered = new ConcurrentHashMap<URL, FailedUnregisteredTask>();
-
+    //发起订阅失败的监听器集合
     private final ConcurrentMap<Holder, FailedSubscribedTask> failedSubscribed = new ConcurrentHashMap<Holder, FailedSubscribedTask>();
-
+    //取消订阅失败的监听器集合
     private final ConcurrentMap<Holder, FailedUnsubscribedTask> failedUnsubscribed = new ConcurrentHashMap<Holder, FailedUnsubscribedTask>();
-
+    //通知失败的URL集合
     private final ConcurrentMap<Holder, FailedNotifiedTask> failedNotified = new ConcurrentHashMap<Holder, FailedNotifiedTask>();
 
     /**
@@ -62,7 +65,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
     private final HashedWheelTimer retryTimer;
 
     public FailbackRegistry(URL url) {
-        super(url);
+        super(url); //默认retry.period= 5 * 1000（5S）
         this.retryPeriod = url.getParameter(Constants.REGISTRY_RETRY_PERIOD_KEY, Constants.DEFAULT_REGISTRY_RETRY_PERIOD);
 
         // since the retry task will not be very much. 128 ticks is enough.
@@ -286,6 +289,7 @@ public abstract class FailbackRegistry extends AbstractRegistry {
         removeFailedSubscribed(url, listener);
         try {
             // Sending a subscription request to the server side
+            //处调用了模板方法， 由子类自行实现
             doSubscribe(url, listener);
         } catch (Exception e) {
             Throwable t = e;

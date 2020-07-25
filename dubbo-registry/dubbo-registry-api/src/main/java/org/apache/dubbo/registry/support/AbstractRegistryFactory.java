@@ -80,6 +80,7 @@ public abstract class AbstractRegistryFactory implements RegistryFactory {
         }
     }
 
+    //是一个通用实现， 主要完成了加锁， 以及调用抽象模板方法createRegistry(URL url)创建具体实现等操作， 并缓存在内存中。
     @Override
     public Registry getRegistry(URL url) {
         url = url.setPath(RegistryService.class.getName())

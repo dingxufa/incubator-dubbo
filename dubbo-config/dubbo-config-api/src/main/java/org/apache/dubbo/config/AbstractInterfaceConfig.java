@@ -135,7 +135,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      */
     protected String ondisconnect;
     protected MetadataReportConfig metadataReportConfig;
-    protected RegistryDataConfig registryDataConfig;
+    protected RegistryDataConfig registryDataConfig;//<dubbo:registryData prefix="dubbo.registryData" valid="true" />
     // callback limits
     private Integer callbacks;
     // the scope for referring/exporting a service, if it's local, it means searching in current JVM only.
@@ -174,7 +174,7 @@ public abstract class AbstractInterfaceConfig extends AbstractMethodConfig {
      */
     protected void checkApplication() {
         // for backward compatibility
-        //如果application为空，创建一个application对象
+        //如果application为空，创建一个application对象   <dubbo:application name="app" valid="true" id="app" prefix="dubbo.application" />
         if (application == null) {
             application = new ApplicationConfig();
         }

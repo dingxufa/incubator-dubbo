@@ -51,6 +51,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * AbstractRegistry. (SPI, Prototype, ThreadSafe)
+ * AbstractRegistry实现了 Registry接口中的注册、 订阅、 查询、 通知等方法， 还实现了磁
+ * 盘文件持久化注册信息这一通用方法。 但是注册、 订阅、 查询、 通知等方法只是简单地把URL
+ * 加入对应的集合， 没有具体的注册或订阅逻辑
  *
  */
 public abstract class AbstractRegistry implements Registry {
@@ -62,23 +65,29 @@ public abstract class AbstractRegistry implements Registry {
     // Log output
     protected final Logger logger = LoggerFactory.getLogger(getClass());
     // Local disk cache, where the special key value.registies records the list of registry centers, and the others are the list of notified service providers
+    // Properties保存了所有服务提供者的URL,使用URL#serviceKey()作为key,提供者列表、路由规则列表、 配置规则列表等作为value。
     private final Properties properties = new Properties();
+
     // File cache timing writing
     private final ExecutorService registryCacheExecutor = Executors.newFixedThreadPool(1, new NamedThreadFactory("DubboSaveRegistryCache", true));
     // Is it synchronized to save the file
     private final boolean syncSaveFile;
     private final AtomicLong lastCacheChanged = new AtomicLong();
     private final Set<URL> registered = new ConcurrentHashSet<URL>();
+
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
+
+    //内存中的服务缓存对象
     private final ConcurrentMap<URL, Map<String, List<URL>>> notified = new ConcurrentHashMap<URL, Map<String, List<URL>>>();
     private URL registryUrl;
-    // Local disk cache file
+    // Local disk cache file 盘文件服务缓存对象
     private File file;
 
     public AbstractRegistry(URL url) {
         setUrl(url);
         // Start file save timer
         syncSaveFile = url.getParameter(Constants.REGISTRY_FILESAVE_SYNC_KEY, false);
+        // dubbo cache 缓存
         String filename = url.getParameter(Constants.FILE_KEY, System.getProperty("user.home") + "/.dubbo/dubbo-registry-" + url.getParameter(Constants.APPLICATION_KEY) + "-" + url.getAddress() + ".cache");
         File file = null;
         if (ConfigUtils.isNotEmpty(filename)) {
@@ -426,6 +435,7 @@ public abstract class AbstractRegistry implements Registry {
                 }
             }
             properties.setProperty(url.getServiceKey(), buf.toString());
+            //缓存的保存有同步和异步两种方式  异步保存,放入线程池。 会传入一个AtomicLong 的版本号，保证数据是最新的.如果在SaveProperties中发现version < lastCacheChanged.get(),那说明一定有其他的线程又执行了SaveProperties，lastCacheChanged+1了
             long version = lastCacheChanged.incrementAndGet();
             if (syncSaveFile) {
                 doSaveProperties(version);
