@@ -405,10 +405,13 @@ public class RegistryProtocol implements Protocol {
         if (!ANY_VALUE.equals(url.getServiceInterface()) && url.getParameter(REGISTER_KEY, true)) {
             registry.register(getRegisteredConsumerUrl(subscribeUrl, url));
         }
+        //建立路由规则链
         directory.buildRouterChain(subscribeUrl);
+        //订阅服务提供者地址
         directory.subscribe(subscribeUrl.addParameter(CATEGORY_KEY,
                 PROVIDERS_CATEGORY + "," + CONFIGURATORS_CATEGORY + "," + ROUTERS_CATEGORY));
 
+        //包装容错策略到invoker
         Invoker invoker = cluster.join(directory);
         ProviderConsumerRegTable.registerConsumer(invoker, url, subscribeUrl, directory);
         return invoker;

@@ -141,7 +141,7 @@ import static org.springframework.util.ClassUtils.resolveClassName;
         // <1.2> 获得 BeanNameGenerator 对象，并设置 beanNameGenerator 到 scanner 中
         BeanNameGenerator beanNameGenerator = resolveBeanNameGenerator(registry);
         scanner.setBeanNameGenerator(beanNameGenerator);
-        // <1.3> 设置过滤获得带有 @Service 注解的类
+        // <1.3> 设置过滤获得带有 @Service 注解的类  指定扫描dubbo的注解^Service,不会扫描Spring的Service注解|
         scanner.addIncludeFilter(new AnnotationTypeFilter(Service.class));
 
         // <2> 遍历 packagesToScan 数组

@@ -37,9 +37,12 @@ public class JavassistProxyFactory extends AbstractProxyFactory {
 
     @Override
     public <T> Invoker<T> getInvoker(T proxy, Class<T> type, URL url) {
+        //服务提供方实现类到Invoker的转换
+        //这里首先把服务实现类转换为Wrapper类，是为了减少反射的调用，这里返回的是AbstractProxyInvoker对象，其内部重写doInvoke（）方法，并委托给Wrapper实现具体功能
         // TODO Wrapper cannot handle this scenario correctly: the classname contains '$'
         final Wrapper wrapper = Wrapper.getWrapper(proxy.getClass().getName().indexOf('$') < 0 ? proxy.getClass() : type);
         return new AbstractProxyInvoker<T>(proxy, type, url) {
+            //AbstractProxyInvoker的doInvoke（）方法委托Wrapper类的invokeMethod执行具体逻辑，后者则通过调用服务提供方接口的实现类来执行本地服务
             @Override
             protected Object doInvoke(T proxy, String methodName,
                                       Class<?>[] parameterTypes,

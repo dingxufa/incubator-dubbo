@@ -35,7 +35,8 @@ import org.springframework.beans.factory.xml.NamespaceHandlerSupport;
  *
  * @export
  */
-public class DubboNamespaceHandler extends NamespaceHandlerSupport {
+public class
+DubboNamespaceHandler extends NamespaceHandlerSupport {
 
     static {
         Version.checkDuplicate(DubboNamespaceHandler.class);
