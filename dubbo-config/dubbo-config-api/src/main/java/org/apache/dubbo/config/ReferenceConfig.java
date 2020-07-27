@@ -261,7 +261,10 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         }
         initialized = true;
         checkStubAndLocal(interfaceClass);
+        //检查mock设置
         checkMock(interfaceClass);
+
+
         Map<String, String> map = new HashMap<String, String>();
 
         map.put(Constants.SIDE_KEY, Constants.CONSUMER_SIDE);
@@ -309,6 +312,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         }
         map.put(Constants.REGISTER_IP_KEY, hostToRegistry);
 
+        //创建代理类
         ref = createProxy(map);
 
         ConsumerModel consumerModel = new ConsumerModel(getUniqueServiceName(), interfaceClass, ref, interfaceClass.getMethods(), attributes);
@@ -319,11 +323,12 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
     private T createProxy(Map<String, String> map) {
         URL tmpUrl = new URL("temp", "localhost", 0, map);
         final boolean isJvmRefer;
+
         if (isInjvm() == null) {
             if (url != null && url.length() > 0) { // if a url is specified, don't do local reference
                 isJvmRefer = false;
             } else {
-                // by default, reference local service if there is
+                // by default, reference local service if there is  默认检查是否是同一个JVM内部引用
                 isJvmRefer = InjvmProtocol.getInjvmProtocol().isInjvmRefer(tmpUrl);
             }
         } else {
@@ -332,11 +337,13 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
 
         if (isJvmRefer) {
             URL url = new URL(Constants.LOCAL_PROTOCOL, Constants.LOCALHOST_VALUE, 0, interfaceClass.getName()).addParameters(map);
+            //直接使用injvm协议从内存中获取实例
             invoker = refprotocol.refer(interfaceClass, url);
             if (logger.isInfoEnabled()) {
                 logger.info("Using injvm service " + interfaceClass.getName());
             }
         } else {
+            //用户是否指定服务提供方地址：直连方式
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
                 String[] us = Constants.SEMICOLON_SPLIT_PATTERN.split(url);
                 if (us != null && us.length > 0) {
@@ -368,17 +375,20 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                 }
             }
 
+            //单注册中心消费
             if (urls.size() == 1) {
                 invoker = refprotocol.refer(interfaceClass, urls.get(0));
-            } else {
+            } else {//多注册中心消费
                 List<Invoker<?>> invokers = new ArrayList<Invoker<?>>();
                 URL registryURL = null;
                 for (URL url : urls) {
+                    //逐个获取注册中心的服务 并添加到 invokers 列表
                     invokers.add(refprotocol.refer(interfaceClass, url));
                     if (Constants.REGISTRY_PROTOCOL.equals(url.getProtocol())) {
                         registryURL = url; // use last registry url
                     }
                 }
+                //通过Cluster将多个Invoker  转换成一个 Invoker
                 if (registryURL != null) { // registry url is available
                     // use RegistryAwareCluster only when register's cluster is available
                     URL u = registryURL.addParameter(Constants.CLUSTER_KEY, RegistryAwareCluster.NAME);

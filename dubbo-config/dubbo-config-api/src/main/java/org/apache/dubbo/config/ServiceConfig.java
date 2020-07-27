@@ -401,7 +401,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     }
 
     /**
-    * 暴露 Dubbo URL
+    * 暴露 Dubbo URL 如果有多个注册中心，循环向每个注册中心曝露服务
     */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void doExportUrls() {
@@ -414,7 +414,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
     }
 
     /**
-    * 基于单个协议，暴露服务
+    * 基于单个协议，暴露服务 ？ 服务可以同时通过多个协议曝露
     *
     * @param protocolConfig 协议配置对象
     * @param registryURLs 注册中心链接对象数组
@@ -524,6 +524,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
             contextPath = provider.getContextpath();
         }
 
+        //拼接URL
         String host = this.findConfigedHosts(protocolConfig, registryURLs, map);
         Integer port = this.findConfigedPorts(protocolConfig, name, map);
         URL url = new URL(name, host, port, (contextPath == null || contextPath.length() == 0 ? "" : contextPath + "/") + path, map);
@@ -534,12 +535,14 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                     .getExtension(url.getProtocol()).getConfigurator(url).configure(url);
         }
 
+        //导出服务  本地服务 远程服务
         String scope = url.getParameter(Constants.SCOPE_KEY);
-        // don't export when none is configured
+        // don't export when none is configured   SCOPE_NONE 不导出服务
         if (!Constants.SCOPE_NONE.equalsIgnoreCase(scope)) {
 
             // export to local if the config is not remote (export to remote only when config is remote)
             if (!Constants.SCOPE_REMOTE.equalsIgnoreCase(scope)) {
+                //处理本地内存JVM协议暴露
                 exportLocal(url);
             }
             // export to remote if the config is not local (export to local only when config is local)
@@ -565,17 +568,26 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                         if (StringUtils.isNotEmpty(proxy)) {
                             registryURL = registryURL.addParameter(Constants.PROXY_KEY, proxy);
                         }
-                        // 使用 ProxyFactory 创建 Invoker 对象
+
+
+                        // 使用 ProxyFactory 创建 Invoker 对象   通过动态代理转换成Invoker, registryURL存储的是注册中心地址， 使用export作为key追加服务元数据信息
                         Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, registryURL.addParameterAndEncoded(Constants.EXPORT_KEY, url.toFullString()));
                         // 创建 DelegateProviderMetaDataInvoker 对象
                         DelegateProviderMetaDataInvoker wrapperInvoker = new DelegateProviderMetaDataInvoker(invoker, this);
 
-                        // 使用 Protocol 暴露 Invoker 对象
+                        // 使用 Protocol 暴露 Invoker 对象    实际调用了Protocol的适配器类Protocol$Adaptive的export（）方法
+                        //如果为远程服务暴露，则其内部根据URL中Protocol的类型为registry，会选择Protocol的实现类RegistryProtocol。如果为本地服务暴露，则其内部根据URL中Protocol的类型为injvm，会选择Protocol的实现类InjvmProtocol
                         Exporter<?> exporter = protocol.export(wrapperInvoker);
                         // 添加到 `exporters`
                         exporters.add(exporter);
                     }
-                } else {// 用于被服务消费者直连服务提供者，参见文档 http://dubbo.apache.org/zh-cn/docs/user/demos/explicit-target.html 。主要用于开发测试环境使用。
+                    /*
+                     //以下列表项分别展示有注册中心和无注册中心的URL：
+                    • registry://host:port/com.alibaba.dubbo.registry.RegistryService?protocol=zookeeper&export=dubbo://ip:port/xxx?..。
+                    • dubbo://ip:host/xxx.Service?timeout=1000&..。*/
+                } else {
+                    //没有使用注册中心的场景， 直接进行服务暴露， 不需要元数据注册
+                    // 用于被服务消费者直连服务提供者，参见文档 http://dubbo.apache.org/zh-cn/docs/user/demos/explicit-target.html 。主要用于开发测试环境使用。
                     // 使用 ProxyFactory 创建 Invoker 对象
                     Invoker<?> invoker = proxyFactory.getInvoker(ref, (Class) interfaceClass, url);
                     // 创建 DelegateProviderMetaDataInvoker 对象
@@ -588,7 +600,7 @@ public class ServiceConfig<T> extends AbstractServiceConfig {
                 }
                 /**
                  * @since 2.7.0
-                 * ServiceData Store
+                 * ServiceData Store  元数据存储  将元数据保存到指定配置中心
                  */
                 MetadataReportService metadataReportService = null;
                 if ((metadataReportService = getMetadataReportService()) != null) {

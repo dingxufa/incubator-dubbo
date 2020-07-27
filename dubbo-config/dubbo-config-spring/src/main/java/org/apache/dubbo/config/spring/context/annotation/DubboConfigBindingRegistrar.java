@@ -57,7 +57,7 @@ import static org.springframework.beans.factory.support.BeanDefinitionReaderUtil
  *
  * <p>DubboConfigBindingRegistrar 本来就是用来处理 EnableDubboConfigBinding 注解
  */
-public class DubboConfigBindingRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
+public class  DubboConfigBindingRegistrar implements ImportBeanDefinitionRegistrar, EnvironmentAware {
 
     private final Log log = LogFactory.getLog(getClass());
 

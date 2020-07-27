@@ -185,9 +185,11 @@ public class RegistryDirectory<T> extends AbstractDirectory<T> implements Notify
         /**
          * TODO Try to refactor the processing of these three type of urls using Collectors.groupBy()?
          */
+        //配置信息 比如服务降级信息
         this.configurators = Configurator.toConfigurators(classifyUrls(categoryUrls, UrlUtils::isConfigurator))
                 .orElse(configurators);
 
+        //路由信息收集并保存
         toRouters(classifyUrls(categoryUrls, UrlUtils::isRoute)).ifPresent(this::addRouters);
 
         // providers

@@ -87,6 +87,8 @@ public class DubboProtocol extends AbstractProtocol {
         public CompletableFuture<Object> reply(ExchangeChannel channel, Object message) throws RemotingException {
             if (message instanceof Invocation) {
                 Invocation inv = (Invocation) message;
+
+                //获取调用方法对应的DubboExporter对象导出的Invoker对象
                 Invoker<?> invoker = getInvoker(channel, inv);
                 // need to consider backward-compatibility if it's a callback
                 if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -111,6 +113,7 @@ public class DubboProtocol extends AbstractProtocol {
                         return null;
                     }
                 }
+                //获取上下文对象，设置对端地址
                 RpcContext rpcContext = RpcContext.getContext();
                 boolean supportServerAsync = invoker.getUrl().getMethodParameter(inv.getMethodName(), Constants.ASYNC_KEY, false);
                 if (supportServerAsync) {
@@ -118,11 +121,16 @@ public class DubboProtocol extends AbstractProtocol {
                     rpcContext.setAsyncContext(new AsyncContextImpl(future));
                 }
                 rpcContext.setRemoteAddress(channel.getRemoteAddress());
+
+                //执行invoker 调用链
                 Result result = invoker.invoke(inv);
 
+                //写回结果   发现结果为AsyncRpcResult，则说明是服务提供方的异步执行，此时返回对应的CompletableFuture对象，
+                // 如果返回的是正常的RpcResult结果，则使用CompletableFuture.completedFuture（result）；把结果转换为CompletableFuture对象（即同步转异步），以便统一处理
                 if (result instanceof AsyncRpcResult) {
                     return ((AsyncRpcResult) result).getResultFuture().thenApply(r -> (Object) r);
                 } else {
+                    //同步执行
                     return CompletableFuture.completedFuture(result);
                 }
             }
@@ -252,7 +260,7 @@ public class DubboProtocol extends AbstractProtocol {
     public <T> Exporter<T> export(Invoker<T> invoker) throws RpcException {
         URL url = invoker.getUrl();
 
-        //  创建 DubboExporter 对象，并添加到 `exporterMap` 。
+        //  创建 DubboExporter 对象，并添加到 `exporterMap` 。 这里将Invoker转换为DubboExporter对象，并且把DubboExporter保存到了缓存exporterMap里
         // export service.
         String key = serviceKey(url);
         DubboExporter<T> exporter = new DubboExporter<T>(invoker, key, exporterMap);
@@ -372,7 +380,7 @@ public class DubboProtocol extends AbstractProtocol {
     }
 
     @Override
-    public <T> Invoker<T> refer(Class<T> serviceType, URL url) throws RpcException {
+    public <T> Invoker<T>   refer(Class<T> serviceType, URL url) throws RpcException {
         optimizeSerialization(url);
         // create rpc invoker.
         DubboInvoker<T> invoker = new DubboInvoker<T>(serviceType, url, getClients(url), invokers);
