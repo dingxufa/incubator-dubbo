@@ -937,7 +937,8 @@ public class ExtensionLoader<T> {
     }
 
     private Class<?> getAdaptiveExtensionClass() {
-        //从指定路径读取文件获取文件中的key/value eg./META-INF/dubbo/internal/org.apache.common.extension.extensionFactory  spi=org.apache.dubbo.common.extension.factory.SpiExtensionFactory
+        //从指定路径读取文件获取文件中的key/value
+        // eg./META-INF/dubbo/internal/org.apache.common.extension.extensionFactory  spi=org.apache.dubbo.common.extension.factory.SpiExtensionFactory
         getExtensionClasses();
         if (cachedAdaptiveClass != null) {
             return cachedAdaptiveClass;

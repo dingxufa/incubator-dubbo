@@ -126,6 +126,7 @@ public class ZookeeperRegistry extends FailbackRegistry {
     @Override
     public void doSubscribe(final URL url, final NotifyListener listener) {
         try {
+            //服务注册中心订阅
             if (Constants.ANY_VALUE.equals(url.getServiceInterface())) {
                 String root = toRootPath();
                 ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
@@ -165,10 +166,11 @@ public class ZookeeperRegistry extends FailbackRegistry {
                     }
                 }
             } else {
+                //消费者订阅
                 List<URL> urls = new ArrayList<>();
                 for (String path : toCategoriesPath(url)) {
                     ConcurrentMap<NotifyListener, ChildListener> listeners = zkListeners.get(url);
-                    if (listeners == null) {
+                    if (listeners == null) {//如果1isteners缓存为空则创建缓存
                         zkListeners.putIfAbsent(url, new ConcurrentHashMap<>());
                         listeners = zkListeners.get(url);
                     }
@@ -183,8 +185,12 @@ public class ZookeeperRegistry extends FailbackRegistry {
                         urls.addAll(toUrlsWithEmpty(url, path, children));
                     }
                 }
-                //回调NotifyListener,更新本地缓存信息  此处会根据URL中的category属性值获取具体的类别： providers、 routers、
-                //consumers> configurators,然后拉取直接子节点的数据进行通知(notify)。
+                /**
+                 * 回调NotifyListener,更新本地缓存信息
+                 * 此处会根据URL中的category属性值获取具体的类别： providers、 routers、* consumers、 configurators,然后拉取直接子节点的数据进行通知(notify)。
+                 * 如果是providers类别的数据， 则订阅方会更新本地Directory管理的Invoker服务列表； 如果是routers分类， 则
+                 * 订阅方会更新本地路由规则列表； 如果是configuators类别， 则订阅方会更新或覆盖本地动态参数列表。
+                 */
                 notify(url, listener, urls);
             }
         } catch (Throwable e) {

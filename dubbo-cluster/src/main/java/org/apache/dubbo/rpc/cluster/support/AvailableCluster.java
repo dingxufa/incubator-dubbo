@@ -40,8 +40,8 @@ public class AvailableCluster implements Cluster {
         return new AbstractClusterInvoker<T>(directory) {
             @Override
             public Result doInvoke(Invocation invocation, List<Invoker<T>> invokers, LoadBalance loadbalance) throws RpcException {
-                for (Invoker<T> invoker : invokers) {
-                    if (invoker.isAvailable()) {
+                for (Invoker<T> invoker : invokers) {//invokers是注册中心实例
+                    if (invoker.isAvailable()) {//判断特定注册中心是否包含provider服务
                         return invoker.invoke(invocation);
                     }
                 }

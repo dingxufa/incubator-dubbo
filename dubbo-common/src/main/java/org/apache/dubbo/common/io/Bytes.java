@@ -90,7 +90,7 @@ public class Bytes {
      * @param b byte array.
      */
     public static void short2bytes(short v, byte[] b, int off) {
-        b[off + 1] = (byte) v;
+        b[off + 1] = (byte) v; //short转byte，丢掉高位的？？
         b[off + 0] = (byte) (v >>> 8);
     }
 

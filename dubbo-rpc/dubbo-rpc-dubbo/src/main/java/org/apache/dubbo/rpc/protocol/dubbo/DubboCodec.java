@@ -109,7 +109,7 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
             }
             return res;
         } else {
-            // decode request.
+            // decode request.  请求标志位被设置， 创建Request对象
             Request req = new Request(id);
             req.setVersion(Version.getProtocolVersion());
             req.setTwoWay((flag & FLAG_TWOWAY) != 0);
@@ -119,9 +119,9 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
             try {
                 Object data;
                 ObjectInput in = CodecSupport.deserialize(channel.getUrl(), is, proto);
-                if (req.isHeartbeat()) {
+                if (req.isHeartbeat()) {////心跳报文是没有消息体的
                     data = decodeHeartbeatData(channel, in);
-                } else if (req.isEvent()) {
+                } else if (req.isEvent()) {//事件有消息体，
                     data = decodeEventData(channel, in);
                 } else {
                     DecodeableRpcInvocation inv;
@@ -131,12 +131,13 @@ public class DubboCodec extends ExchangeCodec implements Codec2 {
                         inv = new DecodeableRpcInvocation(channel, req, is, proto);
                         inv.decode();
                     } else {
+                        //将消息体转为Rpclnvocation
                         inv = new DecodeableRpcInvocation(channel, req,
                                 new UnsafeByteArrayInputStream(readMessageData(is)), proto);
                     }
                     data = inv;
                 }
-                req.setData(data);
+                req.setData(data);//Rpclnvocation 作为 Request 的数据域
             } catch (Throwable t) {
                 if (log.isWarnEnabled()) {
                     log.warn("Decode request failed: " + t.getMessage(), t);

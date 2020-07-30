@@ -187,7 +187,7 @@ public class HeaderExchangeHandler implements ChannelHandlerDelegate {
 
     @Override
     public void received(Channel channel, Object message) throws RemotingException {
-        channel.setAttribute(KEY_READ_TIMESTAMP, System.currentTimeMillis());
+        channel.setAttribute(KEY_READ_TIMESTAMP, System.currentTimeMillis());//更新事件时间戳
         final ExchangeChannel exchangeChannel = HeaderExchangeChannel.getOrAddChannel(channel);
         try {
             if (message instanceof Request) {

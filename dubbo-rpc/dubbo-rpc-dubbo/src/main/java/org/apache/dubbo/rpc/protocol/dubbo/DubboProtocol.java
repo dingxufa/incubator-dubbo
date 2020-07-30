@@ -88,7 +88,7 @@ public class DubboProtocol extends AbstractProtocol {
             if (message instanceof Invocation) {
                 Invocation inv = (Invocation) message;
 
-                //获取调用方法对应的DubboExporter对象导出的Invoker对象
+                //获取调用方法对应的DubboExporter对象导出的Invoker对象  查找invocation关联的Invoker
                 Invoker<?> invoker = getInvoker(channel, inv);
                 // need to consider backward-compatibility if it's a callback
                 if (Boolean.TRUE.toString().equals(inv.getAttachments().get(IS_CALLBACK_SERVICE_INVOKE))) {
@@ -223,8 +223,8 @@ public class DubboProtocol extends AbstractProtocol {
     Invoker<?> getInvoker(Channel channel, Invocation inv) throws RemotingException {
         boolean isCallBackServiceInvoke = false;
         boolean isStubServiceInvoke = false;
-        int port = channel.getLocalAddress().getPort();
-        String path = inv.getAttachments().get(Constants.PATH_KEY);
+        int port = channel.getLocalAddress().getPort();//取服务暴露协议的端口
+        String path = inv.getAttachments().get(Constants.PATH_KEY);//获取调用传递的接口
         // if it's callback service on client side
         isStubServiceInvoke = Boolean.TRUE.toString().equals(inv.getAttachments().get(Constants.STUB_EVENT_KEY));
         if (isStubServiceInvoke) {
@@ -236,8 +236,10 @@ public class DubboProtocol extends AbstractProtocol {
             path = inv.getAttachments().get(Constants.PATH_KEY) + "." + inv.getAttachments().get(Constants.CALLBACK_SERVICE_KEY);
             inv.getAttachments().put(IS_CALLBACK_SERVICE_INVOKE, Boolean.TRUE.toString());
         }
+        //据端口、 接口名、 接口分组和接口版本构造唯一的
         String serviceKey = serviceKey(port, path, inv.getAttachments().get(Constants.VERSION_KEY), inv.getAttachments().get(Constants.GROUP_KEY));
 
+        //从 HashMap 中获取 Exporter!
         DubboExporter<?> exporter = (DubboExporter<?>) exporterMap.get(serviceKey);
 
         if (exporter == null) {

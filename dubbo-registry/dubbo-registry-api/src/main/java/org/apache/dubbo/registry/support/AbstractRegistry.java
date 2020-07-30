@@ -78,6 +78,8 @@ public abstract class AbstractRegistry implements Registry {
     private final ConcurrentMap<URL, Set<NotifyListener>> subscribed = new ConcurrentHashMap<URL, Set<NotifyListener>>();
 
     //内存中的服务缓存对象
+    //外层Map的key是消费者的 URL,内层 Map 的 key 是分类， 包含 providers consumers routes configurators四种。
+    //value则是对应的服务列表， 对于没有服务提供者提供服务的URL,它会以特殊的empty://前缀开头。
     private final ConcurrentMap<URL, Map<String, List<URL>>> notified = new ConcurrentHashMap<URL, Map<String, List<URL>>>();
     private URL registryUrl;
     // Local disk cache file 盘文件服务缓存对象
@@ -99,6 +101,7 @@ public abstract class AbstractRegistry implements Registry {
             }
         }
         this.file = file;
+        //在服务初始化的时候， AbstractRegistry构造函数里会从本地磁盘文件中把持久化的注册数据读到Properties对象里， 并加载到内存缓存中
         loadProperties();
         notify(url.getBackupUrls());
     }

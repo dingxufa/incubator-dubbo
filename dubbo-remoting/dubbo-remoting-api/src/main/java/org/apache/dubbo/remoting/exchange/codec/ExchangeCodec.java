@@ -83,7 +83,7 @@ public class ExchangeCodec extends TelnetCodec {
     @Override
     public Object decode(Channel channel, ChannelBuffer buffer) throws IOException {
         int readable = buffer.readableBytes();
-        byte[] header = new byte[Math.min(readable, HEADER_LENGTH)];
+        byte[] header = new byte[Math.min(readable, HEADER_LENGTH)];//最多读取16个字节， 并分配存储空间
         buffer.readBytes(header);
         return decode(channel, buffer, readable, header);
     }
@@ -184,9 +184,9 @@ public class ExchangeCodec extends TelnetCodec {
             try {
                 ObjectInput in = CodecSupport.deserialize(channel.getUrl(), is, proto);
                 Object data;
-                if (req.isHeartbeat()) {
+                if (req.isHeartbeat()) {//心跳报文是没有消息体的
                     data = decodeHeartbeatData(channel, in);
-                } else if (req.isEvent()) {
+                } else if (req.isEvent()) {//事件有消息体，
                     data = decodeEventData(channel, in);
                 } else {
                     data = decodeRequestData(channel, in);
