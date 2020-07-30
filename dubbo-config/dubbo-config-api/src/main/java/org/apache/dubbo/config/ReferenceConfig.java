@@ -345,7 +345,7 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
         } else {
             //用户是否指定服务提供方地址：直连方式
             if (url != null && url.length() > 0) { // user specified URL, could be peer-to-peer address, or register center's address.
-                String[] us = Constants.SEMICOLON_SPLIT_PATTERN.split(url);
+                String[] us = Constants.SEMICOLON_SPLIT_PATTERN.split(url);//支持用;隔开指定的多个直连机器
                 if (us != null && us.length > 0) {
                     for (String u : us) {
                         URL url = URL.valueOf(u);
@@ -353,8 +353,10 @@ public class ReferenceConfig<T> extends AbstractReferenceConfig {
                             url = url.setPath(interfaceName);
                         }
                         if (Constants.REGISTRY_PROTOCOL.equals(url.getProtocol())) {
+                            //允许直连地址写成注册中心
                             urls.add(url.addParameterAndEncoded(Constants.REFER_KEY, StringUtils.toQueryString(map)));
                         } else {
+                            //直连某一台服务提供者
                             urls.add(ClusterUtils.mergeUrl(url, map));
                         }
                     }
